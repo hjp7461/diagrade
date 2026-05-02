@@ -1,5 +1,5 @@
 import { dialog, ipcMain, BrowserWindow } from 'electron';
-import { IpcChannel } from '../../shared/types';
+import { IpcChannel, type SaveDialogFilter } from '../../shared/types';
 
 const MARKDOWN_FILTER = { name: 'Markdown', extensions: ['md', 'markdown'] };
 
@@ -29,6 +29,23 @@ export function registerDialogIpc(): void {
 
       if (result.canceled || result.filePaths.length === 0) return null;
       return result.filePaths[0]!;
+    }
+  );
+
+  ipcMain.handle(
+    IpcChannel.DialogSaveFile,
+    async (
+      event,
+      payload: { defaultPath?: string; filters?: SaveDialogFilter[] }
+    ): Promise<string | null> => {
+      const win = BrowserWindow.fromWebContents(event.sender);
+      const opts: Electron.SaveDialogOptions = {};
+      if (payload.defaultPath) opts.defaultPath = payload.defaultPath;
+      if (payload.filters) opts.filters = payload.filters;
+      const result = await (win
+        ? dialog.showSaveDialog(win, opts)
+        : dialog.showSaveDialog(opts));
+      return result.canceled || !result.filePath ? null : result.filePath;
     }
   );
 }

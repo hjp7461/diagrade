@@ -3,7 +3,8 @@ import {
   IpcChannel,
   type Config,
   type MenuCommand,
-  type ReadTextResponse
+  type ReadTextResponse,
+  type SaveDialogFilter
 } from '../shared/types';
 
 /**
@@ -21,14 +22,20 @@ const dialog = {
   openFile: (multiple = false): Promise<string[]> =>
     ipcRenderer.invoke(IpcChannel.DialogOpenFile, { multiple }),
   openFolder: (): Promise<string | null> =>
-    ipcRenderer.invoke(IpcChannel.DialogOpenFolder, {})
+    ipcRenderer.invoke(IpcChannel.DialogOpenFolder, {}),
+  saveFile: (defaultPath: string, filters: SaveDialogFilter[]): Promise<string | null> =>
+    ipcRenderer.invoke(IpcChannel.DialogSaveFile, { defaultPath, filters })
 } as const;
 
 const fs = {
   listMd: (folder: string): Promise<string[]> =>
     ipcRenderer.invoke(IpcChannel.FsListMd, { folder }),
   readText: (path: string): Promise<ReadTextResponse> =>
-    ipcRenderer.invoke(IpcChannel.FsReadText, { path })
+    ipcRenderer.invoke(IpcChannel.FsReadText, { path }),
+  writeText: (path: string, content: string): Promise<void> =>
+    ipcRenderer.invoke(IpcChannel.FsWriteText, { path, content }),
+  writeBinary: (path: string, base64: string): Promise<void> =>
+    ipcRenderer.invoke(IpcChannel.FsWriteBinary, { path, base64 })
 } as const;
 
 const protocol = {

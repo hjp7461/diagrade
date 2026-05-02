@@ -1,0 +1,56 @@
+/*
+ * Mermaid 차트 export 메뉴 스타일. FR-21/29/31.
+ * 메뉴 주입 자체는 menu.ts 가, 시각 동작은 본 CSS 가 담당한다.
+ */
+
+.diagrade-mermaid {
+  position: relative;
+}
+
+/* FR-21: 호버 전엔 숨김. */
+.diagrade-export-menu {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 150ms ease;
+}
+
+.diagrade-mermaid:hover .diagrade-export-menu,
+.diagrade-mermaid:focus-within .diagrade-export-menu {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.diagrade-export-button {
+  padding: 4px 8px;
+  font-size: 12px;
+  background: rgba(255, 255, 255, 0.95);
+  color: #2d3748;
+  border: 1px solid #cbd5e0;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.diagrade-export-button:hover:not(:disabled) {
+  background: #fff;
+  border-color: #2b6cb0;
+}
+
+/* FR-31: 비활성 시각. */
+.diagrade-export-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* FR-29: 인쇄 시 숨김 (PDF 내보내기 포함). */
+@media print {
+  .diagrade-export-menu {
+    display: none;
+  }
+}

@@ -19,8 +19,11 @@ export type MenuCommand = 'close-tab' | 'next-tab' | 'prev-tab';
 export const IpcChannel = {
   DialogOpenFile: 'dialog:open-file',
   DialogOpenFolder: 'dialog:open-folder',
+  DialogSaveFile: 'dialog:save-file',
   FsListMd: 'fs:list-md',
   FsReadText: 'fs:read-text',
+  FsWriteText: 'fs:write-text',
+  FsWriteBinary: 'fs:write-binary',
   ConfigGet: 'config:get',
   ConfigSet: 'config:set',
   ProtocolRegisterTabDir: 'protocol:register-tab-dir',
@@ -28,6 +31,11 @@ export const IpcChannel = {
   AppFilesOpened: 'app:files-opened',
   AppMenuCommand: 'app:menu-command'
 } as const;
+
+export interface SaveDialogFilter {
+  name: string;
+  extensions: string[];
+}
 
 export type IpcChannelName = (typeof IpcChannel)[keyof typeof IpcChannel];
 

@@ -3,6 +3,7 @@ import type { Tab } from '../tabs/state';
 import { renderMarkdown } from './render';
 import { applyHighlight } from './highlight';
 import { renderMermaidBlocks } from '../mermaid/render';
+import { injectExportMenus } from '../export/menu';
 
 interface MarkdownViewProps {
   tab: Tab;
@@ -52,11 +53,14 @@ export function MarkdownView({ tab }: MarkdownViewProps) {
       await renderMermaidBlocks(container);
       if (cancelled) return;
       await applyHighlight(container);
+      if (cancelled) return;
+      // mermaid 정상 컨테이너에만 export 메뉴 주입 (FR-21~31).
+      injectExportMenus(container, { activeTabPath: tab.filePath });
     })();
     return () => {
       cancelled = true;
     };
-  }, [html]);
+  }, [html, tab.filePath]);
 
   if (error) {
     return (
