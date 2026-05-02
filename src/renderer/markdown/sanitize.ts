@@ -46,3 +46,20 @@ export function sanitizeMarkdownHtml(dirty: string): string {
 }
 
 export const __testInternals = { ALLOWED_URI_REGEXP };
+
+/**
+ * Mermaid SVG 출력에 DOMPurify 를 적용하지 않는 이유 (M4 의 trust decision):
+ *
+ *   - Mermaid 11 의 `securityLevel: 'strict'` 는 라벨의 사용자 입력 HTML 을 텍스트로
+ *     escape 하므로, 출력 SVG 의 foreignObject 안에는 실행 가능한 HTML 이 들어가지 않는다.
+ *   - DOMPurify 의 svg+html 프로필은 (a) viewBox 의 case 를 깎고 (b) foreignObject 안의
+ *     <div> 같은 HTML 요소를 같은 namespace 검증 때문에 strip 한다 — 정상 mermaid 출력을
+ *     깬다. 이를 우회하려면 hook 레벨의 복잡한 namespace-aware 설정이 필요한데,
+ *     strict 모드의 안전성과 비교해 비용 대비 효익이 낮다.
+ *   - 신뢰 가정: mermaid 라이브러리 (mature, 검증된 escape 처리) + strict 모드.
+ *     변경 시 (예: securityLevel 완화) 이 가정을 재검토해야 한다.
+ *
+ * 마크다운 본문 sanitize (sanitizeMarkdownHtml) 는 SVG 를 *허용하지 않는다* — mermaid 는
+ * sanitize 우회 경로(post-mount mermaid.run) 로만 SVG 를 만들어 mount 한다.
+ * 따라서 마크다운 안의 임의 SVG/foreignObject 는 여전히 차단된다.
+ */

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { Tab } from '../tabs/state';
 import { renderMarkdown } from './render';
 import { applyHighlight } from './highlight';
+import { renderMermaidBlocks } from '../mermaid/render';
 
 interface MarkdownViewProps {
   tab: Tab;
@@ -44,7 +45,17 @@ export function MarkdownView({ tab }: MarkdownViewProps) {
 
   useEffect(() => {
     if (!html || !containerRef.current) return;
-    void applyHighlight(containerRef.current);
+    const container = containerRef.current;
+    let cancelled = false;
+    void (async () => {
+      // Mermaid 가 .language-mermaid 를 SVG 로 교체. 그 후 Shiki 가 남은 코드 블록 처리.
+      await renderMermaidBlocks(container);
+      if (cancelled) return;
+      await applyHighlight(container);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [html]);
 
   if (error) {
