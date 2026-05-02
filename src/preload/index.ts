@@ -1,5 +1,10 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
-import { IpcChannel, type Config, type MenuCommand } from '../shared/types';
+import {
+  IpcChannel,
+  type Config,
+  type MenuCommand,
+  type ReadTextResponse
+} from '../shared/types';
 
 /**
  * window.diagrade.* 로 노출되는 좁은 IPC API.
@@ -21,7 +26,16 @@ const dialog = {
 
 const fs = {
   listMd: (folder: string): Promise<string[]> =>
-    ipcRenderer.invoke(IpcChannel.FsListMd, { folder })
+    ipcRenderer.invoke(IpcChannel.FsListMd, { folder }),
+  readText: (path: string): Promise<ReadTextResponse> =>
+    ipcRenderer.invoke(IpcChannel.FsReadText, { path })
+} as const;
+
+const protocol = {
+  registerTabDir: (tabId: string, dir: string): Promise<void> =>
+    ipcRenderer.invoke(IpcChannel.ProtocolRegisterTabDir, { tabId, dir }),
+  unregisterTabDir: (tabId: string): Promise<void> =>
+    ipcRenderer.invoke(IpcChannel.ProtocolUnregisterTabDir, { tabId })
 } as const;
 
 const config = {
@@ -62,7 +76,8 @@ const api = {
   fs,
   config,
   events,
-  platform
+  platform,
+  protocol
 } as const;
 
 contextBridge.exposeInMainWorld('diagrade', api);

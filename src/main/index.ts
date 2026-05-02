@@ -1,12 +1,16 @@
-import { app, BrowserWindow, shell } from 'electron';
+import { app, BrowserWindow, shell, protocol } from 'electron';
 import { join } from 'node:path';
 import { getStrictWebPreferences } from './security';
 import { isAllowedInternalUrl, isExternalHttpUrl } from './url';
 import { ConfigStore } from './config';
 import { registerAllIpc } from './ipc';
 import { installMenu } from './menu';
+import { registerImageProtocol, IMAGE_PROTOCOL_PRIVILEGES } from './protocol';
 
 const RENDERER_DEV_URL = process.env['ELECTRON_RENDERER_URL'];
+
+// 커스텀 스킴은 app.ready 이전에 등록되어야 한다 (Electron 요구).
+protocol.registerSchemesAsPrivileged([IMAGE_PROTOCOL_PRIVILEGES]);
 
 // productName 을 명시 — app.getPath('userData') 가 'Diagrade' 디렉터리를 사용 (FR-41).
 app.setName('Diagrade');
@@ -52,6 +56,7 @@ void app.whenReady().then(() => {
   // Config: app.getPath('userData') 의 표준 위치 (FR-41).
   const configStore = new ConfigStore(join(app.getPath('userData'), 'config.json'));
   registerAllIpc(configStore);
+  registerImageProtocol();
   installMenu();
 
   createMainWindow();

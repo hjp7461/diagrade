@@ -1,8 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { TabBar } from './tabs/TabBar';
 import { useTabs } from './tabs/useTabs';
 import { resolveDrop } from './dnd';
 import { useNotifications, NotificationStack } from './notifications';
+import { MarkdownView } from './markdown/MarkdownView';
+import { dirnameOfPath } from './path';
+import type { Tab } from './tabs/state';
 
 const DEFAULT_MAX_TABS = 20;
 
@@ -58,6 +61,26 @@ export function App() {
     return () => window.removeEventListener('keydown', handler);
   }, [tabs]);
 
+  // SEC-06 / §5.2: 활성/비활성 탭의 디렉터리를 main 의 protocol 화이트리스트에 동기화.
+  const prevTabsRef = useRef<Tab[]>([]);
+  useEffect(() => {
+    const prev = prevTabsRef.current;
+    const current = tabs.state.tabs;
+
+    for (const t of current) {
+      if (!prev.find((p) => p.id === t.id)) {
+        void window.diagrade.protocol.registerTabDir(t.id, dirnameOfPath(t.filePath));
+      }
+    }
+    for (const t of prev) {
+      if (!current.find((c) => c.id === t.id)) {
+        void window.diagrade.protocol.unregisterTabDir(t.id);
+      }
+    }
+
+    prevTabsRef.current = current;
+  }, [tabs.state.tabs]);
+
   // FR-10/11/12/13: 드래그앤드롭.
   useEffect(() => {
     const onDragOver = (e: DragEvent) => {
@@ -102,11 +125,7 @@ export function App() {
         onClose={tabs.closeById}
       />
       <main style={mainStyle}>
-        {activeTab ? (
-          <ActiveTabPlaceholder filePath={activeTab.filePath} />
-        ) : (
-          <EmptyState />
-        )}
+        {activeTab ? <MarkdownView key={activeTab.id} tab={activeTab} /> : <EmptyState />}
       </main>
       <NotificationStack items={notifications.items} onDismiss={notifications.dismiss} />
     </div>
@@ -122,17 +141,6 @@ function EmptyState() {
       </p>
       <p style={{ color: '#666', fontSize: 13, marginTop: 16 }}>
         폴더를 끌어다 놓으면 1-depth 의 마크다운만 자동으로 탭으로 열립니다.
-      </p>
-    </div>
-  );
-}
-
-function ActiveTabPlaceholder({ filePath }: { filePath: string }) {
-  return (
-    <div style={placeholderStyle}>
-      <p>활성 탭: <code>{filePath}</code></p>
-      <p style={{ color: '#888', fontSize: 13 }}>
-        본문 렌더링은 다음 마일스톤(M3) 에서 들어옵니다.
       </p>
     </div>
   );
@@ -168,7 +176,5 @@ const emptyStyle: React.CSSProperties = {
   textAlign: 'center'
 };
 
-const placeholderStyle: React.CSSProperties = {
-  color: '#333',
-  lineHeight: 1.6
-};
+
+

@@ -20,10 +20,18 @@ export const IpcChannel = {
   DialogOpenFile: 'dialog:open-file',
   DialogOpenFolder: 'dialog:open-folder',
   FsListMd: 'fs:list-md',
+  FsReadText: 'fs:read-text',
   ConfigGet: 'config:get',
   ConfigSet: 'config:set',
+  ProtocolRegisterTabDir: 'protocol:register-tab-dir',
+  ProtocolUnregisterTabDir: 'protocol:unregister-tab-dir',
   AppFilesOpened: 'app:files-opened',
   AppMenuCommand: 'app:menu-command'
 } as const;
 
 export type IpcChannelName = (typeof IpcChannel)[keyof typeof IpcChannel];
+
+export interface ReadTextResponse {
+  content: string;
+  encoding: 'utf-8';
+}

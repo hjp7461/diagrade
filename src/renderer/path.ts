@@ -15,6 +15,18 @@ export function basenameOfPath(p: string): string {
   return lastSep >= 0 ? p.slice(lastSep + 1) : p;
 }
 
+export function dirnameOfPath(p: string): string {
+  let lastSep = -1;
+  for (let i = p.length - 1; i >= 0; i--) {
+    const c = p[i];
+    if (c === '/' || c === '\\') {
+      lastSep = i;
+      break;
+    }
+  }
+  return lastSep >= 0 ? p.slice(0, lastSep) : '';
+}
+
 const MD_EXTENSIONS = ['.md', '.markdown'] as const;
 
 export function isMarkdownPath(path: string): boolean {
