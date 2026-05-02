@@ -14,8 +14,11 @@ export type { Config };
 
 export const DEFAULT_CONFIG: Config = {
   maxTabs: 20,
-  liveReload: true
+  liveReload: true,
+  theme: 'auto'
 };
+
+const VALID_THEMES = new Set<string>(['auto', 'light', 'dark']);
 
 const MIN_MAX_TABS = 1;
 
@@ -43,6 +46,11 @@ export function validateConfig(raw: unknown): Config {
   // PRD-002 FR-13: liveReload 가 진짜 boolean 일 때만 적용. 그 외(string, null, 누락)는 default true.
   if (typeof r['liveReload'] === 'boolean') {
     cfg.liveReload = r['liveReload'];
+  }
+
+  // PRD-004 FR-06: theme 이 'auto'/'light'/'dark' 중 하나일 때만 적용. 그 외는 default 'auto'.
+  if (typeof r['theme'] === 'string' && VALID_THEMES.has(r['theme'])) {
+    cfg.theme = r['theme'] as Config['theme'];
   }
 
   return cfg;

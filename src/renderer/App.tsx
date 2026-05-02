@@ -6,17 +6,25 @@ import { useNotifications, NotificationStack } from './notifications';
 import { MarkdownView } from './markdown/MarkdownView';
 import { dirnameOfPath } from './path';
 import type { Tab } from './tabs/state';
+import type { ThemeSetting } from '../shared/types';
+import { useTheme } from './theme/useTheme';
 
 const DEFAULT_MAX_TABS = 20;
+const DEFAULT_THEME: ThemeSetting = 'auto';
 
 export function App() {
   const [maxTabs, setMaxTabs] = useState(DEFAULT_MAX_TABS);
+  const [themeSetting, setThemeSetting] = useState<ThemeSetting>(DEFAULT_THEME);
+  const effectiveTheme = useTheme(themeSetting);
   const tabs = useTabs(maxTabs);
   const notifications = useNotifications();
 
-  // FR-38/41: config 로드. 실패해도 기본값으로 동작.
+  // FR-38/41 + PRD-004 FR-01: config 로드. 실패해도 기본값으로 동작.
   useEffect(() => {
-    void window.diagrade.config.get().then((cfg) => setMaxTabs(cfg.maxTabs));
+    void window.diagrade.config.get().then((cfg) => {
+      setMaxTabs(cfg.maxTabs);
+      setThemeSetting(cfg.theme);
+    });
   }, []);
 
   // 메뉴 / 다이얼로그로 열린 파일을 탭에 추가.
@@ -131,9 +139,14 @@ export function App() {
         onSwitch={tabs.setActiveById}
         onClose={tabs.closeById}
       />
-      <main style={mainStyle}>
+      <main className="diagrade-content-main" style={mainStyle}>
         {activeTab ? (
-          <MarkdownView key={activeTab.id} tab={activeTab} onNotify={notifications.push} />
+          <MarkdownView
+            key={activeTab.id}
+            tab={activeTab}
+            theme={effectiveTheme}
+            onNotify={notifications.push}
+          />
         ) : (
           <EmptyState />
         )}

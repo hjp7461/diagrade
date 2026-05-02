@@ -13,7 +13,15 @@ export interface Config {
   maxTabs: number;
   /** PRD-002 FR-11: 파일 디스크 변경 시 활성 탭 자동 갱신. default true. */
   liveReload: boolean;
+  /**
+   * PRD-004 FR-01: 테마 설정.
+   *   - 'auto': OS prefers-color-scheme 따라 자동 (default)
+   *   - 'light' / 'dark': 강제 override
+   */
+  theme: ThemeSetting;
 }
+
+export type ThemeSetting = 'auto' | 'light' | 'dark';
 
 export type MenuCommand =
   | 'close-tab'

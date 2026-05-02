@@ -64,9 +64,36 @@ describe('validateConfig (FR-40 robustness)', () => {
   });
 
   it('maxTabs + liveReload 동시 변경 모두 보존', () => {
-    expect(validateConfig({ maxTabs: 5, liveReload: false })).toEqual({
-      maxTabs: 5,
-      liveReload: false
+    expect(validateConfig({ maxTabs: 5, liveReload: false })).toEqual(
+      expect.objectContaining({ maxTabs: 5, liveReload: false })
+    );
+  });
+
+  // PRD-004 FR-01/06
+  it('theme 기본값은 auto', () => {
+    expect(validateConfig({}).theme).toBe('auto');
+    expect(validateConfig(null).theme).toBe('auto');
+  });
+
+  it('theme: auto/light/dark 그대로 적용', () => {
+    expect(validateConfig({ theme: 'auto' }).theme).toBe('auto');
+    expect(validateConfig({ theme: 'light' }).theme).toBe('light');
+    expect(validateConfig({ theme: 'dark' }).theme).toBe('dark');
+  });
+
+  it('theme 의 잘못된 값은 default auto 로 폴백 (FR-06)', () => {
+    expect(validateConfig({ theme: 'pink' }).theme).toBe('auto');
+    expect(validateConfig({ theme: '' }).theme).toBe('auto');
+    expect(validateConfig({ theme: 123 }).theme).toBe('auto');
+    expect(validateConfig({ theme: null }).theme).toBe('auto');
+    expect(validateConfig({ theme: true }).theme).toBe('auto');
+  });
+
+  it('maxTabs + liveReload + theme 동시 변경', () => {
+    expect(validateConfig({ maxTabs: 10, liveReload: false, theme: 'dark' })).toEqual({
+      maxTabs: 10,
+      liveReload: false,
+      theme: 'dark'
     });
   });
 });

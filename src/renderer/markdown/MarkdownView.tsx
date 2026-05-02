@@ -14,9 +14,12 @@ import {
   SEARCH_MATCH_ACTIVE_CLASS
 } from '../search';
 import { SearchBar } from '../search/SearchBar';
+import type { EffectiveTheme } from '../theme/computeEffectiveTheme';
 
 interface MarkdownViewProps {
   tab: Tab;
+  /** PRD-004: 활성 테마. 변경 시 mermaid 가 재렌더되도록 article key 에 포함. */
+  theme: EffectiveTheme;
   onNotify: (message: string) => void;
 }
 
@@ -41,7 +44,7 @@ interface SearchState {
  *   7) PRD-002: app:file-missing 수신 → 토스트
  *   8) PRD-003: 검색 — 검색바 + 매칭 하이라이트 + 페이지 단위 active 결정
  */
-export function MarkdownView({ tab, onNotify }: MarkdownViewProps) {
+export function MarkdownView({ tab, theme, onNotify }: MarkdownViewProps) {
   const [html, setHtml] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -209,7 +212,7 @@ export function MarkdownView({ tab, onNotify }: MarkdownViewProps) {
     const container = containerRef.current;
     let cancelled = false;
     void (async () => {
-      await renderMermaidBlocks(container);
+      await renderMermaidBlocks(container, theme);
       if (cancelled) return;
       await applyHighlight(container);
       if (cancelled) return;
@@ -236,7 +239,7 @@ export function MarkdownView({ tab, onNotify }: MarkdownViewProps) {
     return () => {
       cancelled = true;
     };
-  }, [html, tab.filePath, runSearch]);
+  }, [html, tab.filePath, theme, runSearch]);
 
   // ────────────────────────────────────────────────────────────────
   // 메뉴 명령 수신 — close-tab/next-tab/prev-tab 은 App, 본문 관련은 여기서.
@@ -313,6 +316,8 @@ export function MarkdownView({ tab, onNotify }: MarkdownViewProps) {
   return (
     <>
       <article
+        // PRD-004 FR-12: theme 변경 시 article 을 remount → mermaid 가 새 theme 로 재렌더.
+        key={theme}
         ref={containerRef}
         className="diagrade-markdown"
         dangerouslySetInnerHTML={{ __html: html }}

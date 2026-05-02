@@ -1,0 +1,133 @@
+/*
+ * 테마 CSS variables. PRD-004 §6.1.
+ *
+ * 사용자 의도 (PRD-004 §3.3): 마크다운 본문 + Mermaid 만 다크 적용.
+ * 앱 chrome (탭바/검색바/EmptyState/토스트) 은 light 유지 — OOS.
+ *
+ * `:root` 가 light 기본, `.diagrade-theme-dark` (body 클래스) 가 dark override.
+ * useTheme hook 이 effective theme 에 따라 토글.
+ */
+
+:root {
+  /* 마크다운 본문 — 색상 */
+  --diagrade-bg: #ffffff;
+  --diagrade-fg: #1f2937;
+  --diagrade-fg-muted: #6b7280;
+  --diagrade-border: #e5e7eb;
+  --diagrade-link: #2563eb;
+  --diagrade-link-hover: #1d4ed8;
+  --diagrade-blockquote-fg: #4b5563;
+  --diagrade-blockquote-border: #d1d5db;
+  --diagrade-inline-code-bg: #f3f4f6;
+  --diagrade-inline-code-fg: #1f2937;
+  --diagrade-table-border: #e5e7eb;
+  --diagrade-table-row-alt: #f9fafb;
+  /* 검색 매칭 */
+  --diagrade-mark-bg: #fef3c7;
+  --diagrade-mark-fg: inherit;
+  --diagrade-mark-active-bg: #f59e0b;
+  --diagrade-mark-active-fg: #1a202c;
+}
+
+.diagrade-theme-dark {
+  --diagrade-bg: #1a1a1a;
+  --diagrade-fg: #e2e8f0;
+  --diagrade-fg-muted: #9ca3af;
+  --diagrade-border: #374151;
+  --diagrade-link: #60a5fa;
+  --diagrade-link-hover: #93c5fd;
+  --diagrade-blockquote-fg: #d1d5db;
+  --diagrade-blockquote-border: #4b5563;
+  --diagrade-inline-code-bg: #2d3748;
+  --diagrade-inline-code-fg: #e2e8f0;
+  --diagrade-table-border: #374151;
+  --diagrade-table-row-alt: #1f2937;
+  --diagrade-mark-bg: #b45309;
+  --diagrade-mark-fg: #ffffff;
+  --diagrade-mark-active-bg: #d97706;
+  --diagrade-mark-active-fg: #ffffff;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+ * 마크다운 본문 적용 (FR-07)
+ * ───────────────────────────────────────────────────────────────── */
+
+.diagrade-markdown {
+  color: var(--diagrade-fg);
+}
+
+.diagrade-markdown a {
+  color: var(--diagrade-link);
+}
+.diagrade-markdown a:hover {
+  color: var(--diagrade-link-hover);
+}
+
+.diagrade-markdown blockquote {
+  margin: 12px 0;
+  padding: 4px 12px;
+  border-left: 3px solid var(--diagrade-blockquote-border);
+  color: var(--diagrade-blockquote-fg);
+}
+
+/* 인라인 code (코드 블록은 Shiki 가 처리 — 아래 .shiki 규칙) */
+.diagrade-markdown code:not(pre code) {
+  background: var(--diagrade-inline-code-bg);
+  color: var(--diagrade-inline-code-fg);
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-size: 0.9em;
+}
+
+.diagrade-markdown table {
+  border-collapse: collapse;
+  margin: 12px 0;
+}
+
+.diagrade-markdown th,
+.diagrade-markdown td {
+  border: 1px solid var(--diagrade-table-border);
+  padding: 6px 10px;
+}
+
+.diagrade-markdown tbody tr:nth-child(even) {
+  background: var(--diagrade-table-row-alt);
+}
+
+.diagrade-markdown hr {
+  border: none;
+  border-top: 1px solid var(--diagrade-border);
+  margin: 16px 0;
+}
+
+/* 본문 영역 배경 — 마크다운 article 의 부모 main 도 다크 */
+.diagrade-theme-dark main.diagrade-content-main {
+  background: var(--diagrade-bg);
+}
+
+/* ─────────────────────────────────────────────────────────────────
+ * Shiki dual-theme 활성화 (FR-08)
+ * Shiki 의 codeToHtml({ themes: { light, dark } }) 출력은 inline style 로
+ * --shiki-light / --shiki-dark 변수와 light 색을 default 로 박는다.
+ * dark 모드에선 !important 로 dark 변수 강제 (Shiki 표준 패턴).
+ * ───────────────────────────────────────────────────────────────── */
+
+.diagrade-theme-dark .shiki,
+.diagrade-theme-dark .shiki span {
+  color: var(--shiki-dark) !important;
+  background-color: var(--shiki-dark-bg) !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+ * 검색 매칭 (FR-10) — searchBar.css 의 색을 변수로 override
+ * ───────────────────────────────────────────────────────────────── */
+
+.diagrade-search-match {
+  background: var(--diagrade-mark-bg);
+  color: var(--diagrade-mark-fg);
+}
+
+.diagrade-search-match.active {
+  background: var(--diagrade-mark-active-bg);
+  color: var(--diagrade-mark-active-fg);
+}

@@ -1,4 +1,5 @@
 import { getMermaid } from './init';
+import type { EffectiveTheme } from '../theme/computeEffectiveTheme';
 
 /** 에러 fallback 노드를 식별하는 클래스. M5 의 export 메뉴 주입이 이 클래스를 보고 건너뛴다 (FR-28). */
 export const MERMAID_ERROR_CLASS = 'diagrade-mermaid-error';
@@ -78,13 +79,16 @@ function parseSvg(svg: string): SVGElement | null {
  * Shiki 와의 순서: applyHighlight 가 .language-mermaid 를 SKIP 하므로 어느 쪽 먼저든 무관.
  * 단 호출자(MarkdownView)는 mermaid → Shiki 순서로 호출해 DOM 변경 race 를 단순화한다.
  */
-export async function renderMermaidBlocks(container: HTMLElement): Promise<void> {
+export async function renderMermaidBlocks(
+  container: HTMLElement,
+  theme: EffectiveTheme = 'light'
+): Promise<void> {
   const blocks = Array.from(container.querySelectorAll<HTMLElement>('code.language-mermaid'));
   if (blocks.length === 0) return;
 
   let mermaid: Awaited<ReturnType<typeof getMermaid>>;
   try {
-    mermaid = await getMermaid();
+    mermaid = await getMermaid(theme);
   } catch (e) {
     // mermaid 자체 로드 실패 — 모든 블록을 에러 fallback 으로
     for (const codeEl of blocks) {
