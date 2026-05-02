@@ -2,8 +2,14 @@ import { app, BrowserWindow, shell } from 'electron';
 import { join } from 'node:path';
 import { getStrictWebPreferences } from './security';
 import { isAllowedInternalUrl, isExternalHttpUrl } from './url';
+import { ConfigStore } from './config';
+import { registerAllIpc } from './ipc';
+import { installMenu } from './menu';
 
 const RENDERER_DEV_URL = process.env['ELECTRON_RENDERER_URL'];
+
+// productName 을 명시 — app.getPath('userData') 가 'Diagrade' 디렉터리를 사용 (FR-41).
+app.setName('Diagrade');
 
 function createMainWindow(): BrowserWindow {
   const win = new BrowserWindow({
@@ -43,6 +49,11 @@ function createMainWindow(): BrowserWindow {
 }
 
 void app.whenReady().then(() => {
+  // Config: app.getPath('userData') 의 표준 위치 (FR-41).
+  const configStore = new ConfigStore(join(app.getPath('userData'), 'config.json'));
+  registerAllIpc(configStore);
+  installMenu();
+
   createMainWindow();
 
   app.on('activate', () => {

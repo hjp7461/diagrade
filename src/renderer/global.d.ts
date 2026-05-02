@@ -1,4 +1,4 @@
-import type { DiagradeApi } from './index';
+import type { DiagradeApi } from '../preload';
 
 declare global {
   interface Window {
