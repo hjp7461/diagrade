@@ -1,0 +1,108 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# 같은 브랜치의 새 push 가 들어오면 진행 중인 run 을 취소.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# 본 workflow 는 외부 입력 (issue/PR title 등) 을 run: 에 직접 보간하지 않는다.
+# github.ref 는 브랜치 이름이며 group 식별자로만 사용 — shell 실행 X.
+permissions:
+  contents: read
+
+jobs:
+  static:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+
+  test:
+    needs: static
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Build (E2E 의존)
+        run: npm run build
+
+      - name: E2E (Linux — xvfb)
+        if: runner.os == 'Linux'
+        run: xvfb-run --auto-servernum npx playwright test
+      - name: E2E (macOS / Windows)
+        if: runner.os != 'Linux'
+        run: npx playwright test
+
+      - name: Upload Playwright traces (실패 시)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces-${{ matrix.os }}
+          path: test-results/
+          retention-days: 7
+
+  dist:
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            target: 'dist:mac'
+            artifact: macos-dist
+          - os: windows-latest
+            target: 'dist:win'
+            artifact: windows-dist
+          - os: ubuntu-latest
+            target: 'dist:linux'
+            artifact: linux-dist
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Build distributable
+        env:
+          DIST_TARGET: ${{ matrix.target }}
+        run: npm run "$DIST_TARGET"
+        shell: bash
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: |
+            release/*.dmg
+            release/*.exe
+            release/*.AppImage
+            release/*.zip
+            release/*.blockmap
+          retention-days: 7
+          if-no-files-found: warn
