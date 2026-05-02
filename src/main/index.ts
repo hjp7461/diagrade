@@ -1,4 +1,5 @@
 import { app, BrowserWindow, shell, protocol } from 'electron';
+import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { getStrictWebPreferences } from './security';
 import { isAllowedInternalUrl, isExternalHttpUrl } from './url';
@@ -8,6 +9,23 @@ import { installMenu } from './menu';
 import { registerImageProtocol, IMAGE_PROTOCOL_PRIVILEGES } from './protocol';
 
 const RENDERER_DEV_URL = process.env['ELECTRON_RENDERER_URL'];
+
+/**
+ * BrowserWindow icon path 결정.
+ *
+ * - 패키지된 앱: extraResources 로 복사된 process.resourcesPath/icon.png.
+ * - 개발 (npm run dev): repo 루트의 assets/icon.png. __dirname 은 out/main/ 이므로 ../../assets.
+ *
+ * 둘 다 없으면 undefined 반환 → Electron 기본 아이콘 사용 (사용자가 assets/icon.png 를 지웠을 때
+ * 안전하게 폴백).
+ */
+function resolveAppIconPath(): string | undefined {
+  const candidates = [
+    join(process.resourcesPath ?? '', 'icon.png'),
+    join(__dirname, '..', '..', 'assets', 'icon.png')
+  ];
+  return candidates.find((p) => p && existsSync(p));
+}
 
 // 커스텀 스킴은 app.ready 이전에 등록되어야 한다 (Electron 요구).
 protocol.registerSchemesAsPrivileged([IMAGE_PROTOCOL_PRIVILEGES]);
@@ -23,11 +41,13 @@ if (userDataOverride) {
 }
 
 function createMainWindow(): BrowserWindow {
+  const iconPath = resolveAppIconPath();
   const win = new BrowserWindow({
     width: 1280,
     height: 800,
     show: false,
     autoHideMenuBar: false,
+    ...(iconPath ? { icon: iconPath } : {}),
     webPreferences: getStrictWebPreferences(join(__dirname, '../preload/index.js'))
   });
 

@@ -143,6 +143,21 @@ sips -g pixelWidth -g pixelHeight *.png  # 출력값이 SVG viewBox 의 정확�
 
 - [ ] 인터넷 없는 환경에서 mermaid / Shiki / 폰트 모두 정상 동작 (모두 번들)
 
+## 아이콘 커스터마이징
+
+기본 아이콘은 `assets/icon.png` (1024×1024 PNG) 한 파일이 모든 OS (macOS .icns, Windows .ico, Linux .png) 의 소스가 됩니다 — electron-builder 가 빌드 시 OS 별 형식으로 자동 변환합니다.
+
+```bash
+# 사용자 아이콘으로 교체 (1024×1024 PNG 권장)
+cp my-icon.png assets/icon.png
+npm run dist  # 새 아이콘으로 산출물 빌드
+
+# 기본 아이콘으로 되돌리기 (또는 처음 생성)
+node scripts/generate-default-icon.mjs --force
+```
+
+런타임에서 BrowserWindow 의 작업표시줄 아이콘도 같은 파일을 사용 (`extraResources` 로 패키지에 포함). `assets/icon.png` 가 없으면 Electron 기본 아이콘으로 안전 폴백.
+
 ## 라이선스
 
 MIT
