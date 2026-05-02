@@ -20,7 +20,8 @@ export type MenuCommand =
   | 'next-tab'
   | 'prev-tab'
   | 'save-all-diagrams'
-  | 'export-pdf';
+  | 'export-pdf'
+  | 'open-search';
 
 /** IPC 채널 이름. PRD-001 §5.1 + PRD-002 §5.1. */
 export const IpcChannel = {

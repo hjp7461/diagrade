@@ -114,6 +114,12 @@ function buildTemplate(): MenuItemConstructorOptions[] {
   const viewMenu: MenuItemConstructorOptions = {
     label: '보기',
     submenu: [
+      {
+        label: '검색...',
+        accelerator: 'CmdOrCtrl+F',
+        click: () => sendMenuCommand('open-search')
+      },
+      { type: 'separator' },
       { role: 'reload' },
       { role: 'forceReload' },
       { role: 'toggleDevTools' },

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Tab } from '../tabs/state';
 import { renderMarkdown } from './render';
 import { applyHighlight } from './highlight';
@@ -7,14 +7,29 @@ import { injectExportMenus } from '../export/menu';
 import { saveAllDiagrams } from '../export/saveAllDiagrams';
 import { suggestedPdfFileName } from '../export/suggestedFilename';
 import { basenameOfPath } from '../path';
+import {
+  findMatches,
+  chooseActiveIndex,
+  clearHighlights,
+  SEARCH_MATCH_ACTIVE_CLASS
+} from '../search';
+import { SearchBar } from '../search/SearchBar';
 
 interface MarkdownViewProps {
   tab: Tab;
   onNotify: (message: string) => void;
 }
 
+const SEARCH_DEBOUNCE_MS = 150;
+
+interface SearchState {
+  open: boolean;
+  query: string;
+  caseSensitive: boolean;
+}
+
 /**
- * 활성 탭의 마크다운 본문을 표시.
+ * 활성 탭의 마크다운 본문 + 검색 (PRD-003).
  *
  * 흐름:
  *   1) fs.readText 로 파일 내용 로드
@@ -24,14 +39,39 @@ interface MarkdownViewProps {
  *   5) save-all-diagrams / export-pdf 메뉴 명령 수신
  *   6) PRD-002: app:file-changed 수신 → reload + scrollTop 보존
  *   7) PRD-002: app:file-missing 수신 → 토스트
+ *   8) PRD-003: 검색 — 검색바 + 매칭 하이라이트 + 페이지 단위 active 결정
  */
 export function MarkdownView({ tab, onNotify }: MarkdownViewProps) {
   const [html, setHtml] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  // PRD-002 FR-04: 자동 갱신 시 scrollTop 보존을 위해 reload 직전 위치를 ref 에 저장.
-  // mermaid/highlight 후처리가 끝난 다음 복원.
   const pendingScrollTopRef = useRef<number | null>(null);
+
+  // 검색 state
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchCaseSensitive, setSearchCaseSensitive] = useState(false);
+  const [matchCount, setMatchCount] = useState(0);
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const [focusTrigger, setFocusTrigger] = useState(0);
+
+  // 비-effect 코드에서 최신 검색 state 를 참조하기 위한 ref (post-render effect 의 의존성 회피).
+  const searchStateRef = useRef<SearchState>({ open: false, query: '', caseSensitive: false });
+  searchStateRef.current = {
+    open: searchOpen,
+    query: searchQuery,
+    caseSensitive: searchCaseSensitive
+  };
+
+  // 매칭 element 배열 — 클래스 토글 / 스크롤에 사용. state 가 아닌 ref (re-render 안 트리거).
+  const matchElementsRef = useRef<HTMLElement[]>([]);
+
+  // query 디바운스 타이머.
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ────────────────────────────────────────────────────────────────
+  // 파일 로드
+  // ────────────────────────────────────────────────────────────────
 
   const loadFile = useCallback(() => {
     let cancelled = false;
@@ -53,31 +93,117 @@ export function MarkdownView({ tab, onNotify }: MarkdownViewProps) {
     };
   }, [tab.filePath, tab.id]);
 
-  // 초기 로드 + 탭 변경 시 reload.
   useEffect(() => loadFile(), [loadFile]);
 
-  // 주의: watch.setActivePath 는 App 의 effect 가 담당 (registerTabDir 와 같은 effect 안에서
-  // 순서 보장). 여기서 부르면 children-effect-first 순서 때문에 검증 race 가 생김.
+  // ────────────────────────────────────────────────────────────────
+  // 검색 — 핵심 로직
+  // ────────────────────────────────────────────────────────────────
 
-  // PRD-002: 파일 변경 / 삭제 이벤트 수신.
-  useEffect(() => {
-    const offChanged = window.diagrade.events.onFileChanged(() => {
-      // FR-04: scrollTop 캡처 후 reload 트리거.
-      const main = containerRef.current?.parentElement;
-      pendingScrollTopRef.current = main?.scrollTop ?? null;
-      loadFile();
+  const applyActiveClass = useCallback((matches: HTMLElement[], idx: number): void => {
+    matches.forEach((m, i) => {
+      if (i === idx) m.classList.add(SEARCH_MATCH_ACTIVE_CLASS);
+      else m.classList.remove(SEARCH_MATCH_ACTIVE_CLASS);
     });
-    const offMissing = window.diagrade.events.onFileMissing((filename) => {
-      // FR-08: 본문 유지 + 토스트 1 회.
-      onNotify(`파일이 삭제되었습니다: ${filename}`);
-    });
-    return () => {
-      offChanged();
-      offMissing();
-    };
-  }, [loadFile, onNotify]);
+  }, []);
 
-  // mermaid / highlight / export 메뉴 + scrollTop 복원.
+  const scrollMatchIntoView = useCallback((el: HTMLElement): void => {
+    el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }, []);
+
+  /**
+   * 검색 실행 — 기존 하이라이트 제거 → 새 매칭 → 활성 결정 → scrollIntoView.
+   * resetActive: true 이면 페이지 단위 결정 무시하고 0 으로 (FR-25 reload 후).
+   */
+  const runSearch = useCallback(
+    (query: string, caseSensitive: boolean, resetActive: boolean): void => {
+      const container = containerRef.current;
+      if (!container) return;
+
+      clearHighlights(container);
+      matchElementsRef.current = [];
+
+      if (query.length === 0) {
+        setMatchCount(0);
+        setActiveIndex(-1);
+        return;
+      }
+
+      const matches = findMatches(container, query, caseSensitive);
+      matchElementsRef.current = matches;
+      setMatchCount(matches.length);
+
+      if (matches.length === 0) {
+        setActiveIndex(-1);
+        return;
+      }
+
+      const main = container.parentElement;
+      let idx: number;
+      if (resetActive || !main) {
+        idx = 0;
+      } else {
+        const tops = matches.map((m) => m.offsetTop);
+        idx = chooseActiveIndex(tops, main.scrollTop, main.clientHeight);
+      }
+      setActiveIndex(idx);
+      applyActiveClass(matches, idx);
+      const activeEl = matches[idx];
+      if (activeEl) scrollMatchIntoView(activeEl);
+    },
+    [applyActiveClass, scrollMatchIntoView]
+  );
+
+  const handleQueryChange = useCallback(
+    (q: string): void => {
+      setSearchQuery(q);
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+      searchDebounceRef.current = setTimeout(() => {
+        runSearch(q, searchStateRef.current.caseSensitive, false);
+      }, SEARCH_DEBOUNCE_MS);
+    },
+    [runSearch]
+  );
+
+  const handleCaseToggle = useCallback((): void => {
+    const next = !searchCaseSensitive;
+    setSearchCaseSensitive(next);
+    runSearch(searchQuery, next, false);
+  }, [runSearch, searchCaseSensitive, searchQuery]);
+
+  const navigate = useCallback(
+    (delta: 1 | -1): void => {
+      const matches = matchElementsRef.current;
+      if (matches.length === 0) return;
+      const len = matches.length;
+      setActiveIndex((prev) => {
+        const next = (prev + delta + len) % len;
+        applyActiveClass(matches, next);
+        const el = matches[next];
+        if (el) scrollMatchIntoView(el);
+        return next;
+      });
+    },
+    [applyActiveClass, scrollMatchIntoView]
+  );
+
+  const handleClose = useCallback((): void => {
+    if (searchDebounceRef.current) {
+      clearTimeout(searchDebounceRef.current);
+      searchDebounceRef.current = null;
+    }
+    const container = containerRef.current;
+    if (container) clearHighlights(container);
+    matchElementsRef.current = [];
+    setSearchOpen(false);
+    setSearchQuery('');
+    setMatchCount(0);
+    setActiveIndex(-1);
+  }, []);
+
+  // ────────────────────────────────────────────────────────────────
+  // mermaid / Shiki / export 메뉴 / 검색 재실행 (post-render)
+  // ────────────────────────────────────────────────────────────────
+
   useEffect(() => {
     if (!html || !containerRef.current) return;
     const container = containerRef.current;
@@ -89,19 +215,33 @@ export function MarkdownView({ tab, onNotify }: MarkdownViewProps) {
       if (cancelled) return;
       injectExportMenus(container, { activeTabPath: tab.filePath });
 
-      // PRD-002 FR-04: 후처리 완료 후 scrollTop 복원 (reload 의 경우만 — pending null 이면 no-op).
+      // PRD-002 FR-04: scrollTop 복원.
       if (pendingScrollTopRef.current !== null) {
         const main = container.parentElement;
         if (main) main.scrollTop = pendingScrollTopRef.current;
         pendingScrollTopRef.current = null;
       }
+
+      // PRD-003 FR-25: html 이 새로 mount 되면 매칭이 stale.
+      // 검색바가 열려있고 query 가 있으면 새 DOM 에서 다시 찾는다. active = 0 reset.
+      if (cancelled) return;
+      const s = searchStateRef.current;
+      if (s.open && s.query) {
+        runSearch(s.query, s.caseSensitive, /* resetActive */ true);
+      } else {
+        // html 이 바뀌면 ref 도 무효 — 다음 검색을 위해 비움.
+        matchElementsRef.current = [];
+      }
     })();
     return () => {
       cancelled = true;
     };
-  }, [html, tab.filePath]);
+  }, [html, tab.filePath, runSearch]);
 
-  // M6: 일괄 저장 + PDF 내보내기 메뉴 명령 수신.
+  // ────────────────────────────────────────────────────────────────
+  // 메뉴 명령 수신 — close-tab/next-tab/prev-tab 은 App, 본문 관련은 여기서.
+  // ────────────────────────────────────────────────────────────────
+
   useEffect(() => {
     return window.diagrade.events.onMenuCommand(async (command) => {
       if (command === 'save-all-diagrams') {
@@ -125,9 +265,42 @@ export function MarkdownView({ tab, onNotify }: MarkdownViewProps) {
         } catch (e) {
           onNotify(`PDF 저장 실패: ${e instanceof Error ? e.message : String(e)}`);
         }
+      } else if (command === 'open-search') {
+        // PRD-003 FR-01/02: 검색바 표시 (이미 열려있어도 focus + select-all 트리거).
+        setSearchOpen(true);
+        setFocusTrigger((t) => t + 1);
       }
     });
   }, [tab.filePath, onNotify]);
+
+  // ────────────────────────────────────────────────────────────────
+  // PRD-002: 파일 변경 / 삭제 이벤트 수신.
+  // ────────────────────────────────────────────────────────────────
+
+  useEffect(() => {
+    const offChanged = window.diagrade.events.onFileChanged(() => {
+      const main = containerRef.current?.parentElement;
+      pendingScrollTopRef.current = main?.scrollTop ?? null;
+      loadFile();
+    });
+    const offMissing = window.diagrade.events.onFileMissing((filename) => {
+      onNotify(`파일이 삭제되었습니다: ${filename}`);
+    });
+    return () => {
+      offChanged();
+      offMissing();
+    };
+  }, [loadFile, onNotify]);
+
+  // ────────────────────────────────────────────────────────────────
+  // unmount 시 검색 정리 (탭 전환 — key remount 시).
+  // ────────────────────────────────────────────────────────────────
+
+  useEffect(() => {
+    return () => {
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    };
+  }, []);
 
   if (error) {
     return (
@@ -138,12 +311,28 @@ export function MarkdownView({ tab, onNotify }: MarkdownViewProps) {
   }
 
   return (
-    <article
-      ref={containerRef}
-      className="diagrade-markdown"
-      dangerouslySetInnerHTML={{ __html: html }}
-      style={contentStyle}
-    />
+    <>
+      <article
+        ref={containerRef}
+        className="diagrade-markdown"
+        dangerouslySetInnerHTML={{ __html: html }}
+        style={contentStyle}
+      />
+      {searchOpen && (
+        <SearchBar
+          query={searchQuery}
+          caseSensitive={searchCaseSensitive}
+          currentIndex={activeIndex}
+          totalMatches={matchCount}
+          focusTrigger={focusTrigger}
+          onQueryChange={handleQueryChange}
+          onCaseToggle={handleCaseToggle}
+          onPrev={() => navigate(-1)}
+          onNext={() => navigate(1)}
+          onClose={handleClose}
+        />
+      )}
+    </>
   );
 }
 

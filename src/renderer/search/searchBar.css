@@ -1,0 +1,104 @@
+/*
+ * 검색바 스타일. PRD-003 §3.5.
+ *   - 본문 우상단 fixed overlay
+ *   - export 메뉴와 z-index 분리
+ *   - 인쇄 시 숨김 (FR-23)
+ */
+
+.diagrade-search-bar {
+  position: fixed;
+  top: 16px;
+  right: 24px;
+  z-index: 100; /* export 메뉴는 1 (호버 표시), 검색바가 더 위 */
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px;
+  background: #fff;
+  border: 1px solid #cbd5e0;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  font-family: inherit;
+  font-size: 13px;
+  max-width: 360px;
+}
+
+.diagrade-search-bar__input {
+  flex: 1;
+  min-width: 200px;
+  padding: 4px 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 13px;
+  outline: none;
+}
+
+.diagrade-search-bar__input:focus {
+  border-color: #2b6cb0;
+}
+
+.diagrade-search-bar__count {
+  min-width: 38px;
+  text-align: center;
+  color: #4a5568;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.diagrade-search-bar__count--empty {
+  color: #c53030;
+}
+
+.diagrade-search-bar__btn {
+  padding: 4px 6px;
+  background: transparent;
+  color: #4a5568;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.diagrade-search-bar__btn:hover:not(:disabled) {
+  background: #edf2f7;
+  border-color: #cbd5e0;
+}
+
+.diagrade-search-bar__btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.diagrade-search-bar__btn--toggle.is-active {
+  background: #bee3f8;
+  border-color: #2b6cb0;
+  color: #2c5282;
+}
+
+.diagrade-search-bar__close {
+  margin-left: 4px;
+}
+
+/* 매칭 하이라이트 */
+.diagrade-search-match {
+  background: #fef3c7;
+  color: inherit;
+  padding: 0;
+  border-radius: 2px;
+}
+
+.diagrade-search-match.active {
+  background: #f59e0b;
+  color: #1a202c;
+}
+
+/* FR-23: 인쇄 시 검색바 숨김 + 매칭 하이라이트 노출 (사용자 의도라 인쇄에 박혀도 OK).
+ * 만약 매칭 하이라이트도 숨기려면 .diagrade-search-match 도 추가 — 현재는 노출 유지. */
+@media print {
+  .diagrade-search-bar {
+    display: none;
+  }
+}
