@@ -60,17 +60,23 @@ test('preload API surface — 필수 채널이 모두 노출됨', async () => {
   const surface = await win.evaluate(() => {
     const api = (window as { diagrade?: Record<string, unknown> }).diagrade;
     if (!api) return null;
+    const get = (key: string, sub: string) =>
+      typeof (api[key] as Record<string, unknown> | undefined)?.[sub];
     return {
       version: typeof api.version,
-      dialogOpen: typeof (api.dialog as Record<string, unknown> | undefined)?.openFile,
-      dialogSave: typeof (api.dialog as Record<string, unknown> | undefined)?.saveFile,
-      fsRead: typeof (api.fs as Record<string, unknown> | undefined)?.readText,
-      fsWriteText: typeof (api.fs as Record<string, unknown> | undefined)?.writeText,
-      fsWriteBinary: typeof (api.fs as Record<string, unknown> | undefined)?.writeBinary,
-      configGet: typeof (api.config as Record<string, unknown> | undefined)?.get,
-      protocolReg: typeof (api.protocol as Record<string, unknown> | undefined)?.registerTabDir,
-      printPdf: typeof (api.print as Record<string, unknown> | undefined)?.pdf,
-      onFiles: typeof (api.events as Record<string, unknown> | undefined)?.onFilesOpened
+      dialogOpen: get('dialog', 'openFile'),
+      dialogSave: get('dialog', 'saveFile'),
+      fsRead: get('fs', 'readText'),
+      fsWriteText: get('fs', 'writeText'),
+      fsWriteBinary: get('fs', 'writeBinary'),
+      configGet: get('config', 'get'),
+      protocolReg: get('protocol', 'registerTabDir'),
+      printPdf: get('print', 'pdf'),
+      onFiles: get('events', 'onFilesOpened'),
+      // PRD-002 신규
+      watchSetActive: get('watch', 'setActivePath'),
+      onFileChanged: get('events', 'onFileChanged'),
+      onFileMissing: get('events', 'onFileMissing')
     };
   });
 
@@ -84,6 +90,9 @@ test('preload API surface — 필수 채널이 모두 노출됨', async () => {
     configGet: 'function',
     protocolReg: 'function',
     printPdf: 'function',
-    onFiles: 'function'
+    onFiles: 'function',
+    watchSetActive: 'function',
+    onFileChanged: 'function',
+    onFileMissing: 'function'
   });
 });

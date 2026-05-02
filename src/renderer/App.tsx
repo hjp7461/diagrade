@@ -62,6 +62,9 @@ export function App() {
   }, [tabs]);
 
   // SEC-06 / §5.2: 활성/비활성 탭의 디렉터리를 main 의 protocol 화이트리스트에 동기화.
+  // PRD-002 §3.1 FR-05: 화이트리스트 갱신 직후 watch:set-active-path 를 같은 effect 에서 호출
+  // (renderer→main IPC 는 큐 순서 보장 — registerTabDir 가 watch 검증 시점에 반영됨).
+  // 자식 (MarkdownView) 의 effect 보다 watch 호출이 먼저 가야 race 방지.
   const prevTabsRef = useRef<Tab[]>([]);
   useEffect(() => {
     const prev = prevTabsRef.current;
@@ -78,8 +81,12 @@ export function App() {
       }
     }
 
+    // 활성 탭의 path 로 watcher 전환. 활성 탭 없으면 null 로 stop.
+    const active = current.find((t) => t.id === tabs.state.activeTabId) ?? null;
+    void window.diagrade.watch.setActivePath(active?.filePath ?? null);
+
     prevTabsRef.current = current;
-  }, [tabs.state.tabs]);
+  }, [tabs.state.tabs, tabs.state.activeTabId]);
 
   // FR-10/11/12/13: 드래그앤드롭.
   useEffect(() => {

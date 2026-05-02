@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import type { Tab } from '../tabs/state';
 import { renderMarkdown } from './render';
 import { applyHighlight } from './highlight';
@@ -19,16 +19,21 @@ interface MarkdownViewProps {
  * 흐름:
  *   1) fs.readText 로 파일 내용 로드
  *   2) renderMarkdown (markdown-it → 이미지 src 치환 → DOMPurify) — 동기
- *   3) DOMPurify 통과 결과만 dangerouslySetInnerHTML 로 mount
+ *   3) DOMPurify 통과 결과만 mount (React 의 공식 escape hatch)
  *   4) mount 후 mermaid → Shiki → export 메뉴 주입 (모두 비동기)
  *   5) save-all-diagrams / export-pdf 메뉴 명령 수신
+ *   6) PRD-002: app:file-changed 수신 → reload + scrollTop 보존
+ *   7) PRD-002: app:file-missing 수신 → 토스트
  */
 export function MarkdownView({ tab, onNotify }: MarkdownViewProps) {
   const [html, setHtml] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  // PRD-002 FR-04: 자동 갱신 시 scrollTop 보존을 위해 reload 직전 위치를 ref 에 저장.
+  // mermaid/highlight 후처리가 끝난 다음 복원.
+  const pendingScrollTopRef = useRef<number | null>(null);
 
-  useEffect(() => {
+  const loadFile = useCallback(() => {
     let cancelled = false;
     setError(null);
 
@@ -48,6 +53,31 @@ export function MarkdownView({ tab, onNotify }: MarkdownViewProps) {
     };
   }, [tab.filePath, tab.id]);
 
+  // 초기 로드 + 탭 변경 시 reload.
+  useEffect(() => loadFile(), [loadFile]);
+
+  // 주의: watch.setActivePath 는 App 의 effect 가 담당 (registerTabDir 와 같은 effect 안에서
+  // 순서 보장). 여기서 부르면 children-effect-first 순서 때문에 검증 race 가 생김.
+
+  // PRD-002: 파일 변경 / 삭제 이벤트 수신.
+  useEffect(() => {
+    const offChanged = window.diagrade.events.onFileChanged(() => {
+      // FR-04: scrollTop 캡처 후 reload 트리거.
+      const main = containerRef.current?.parentElement;
+      pendingScrollTopRef.current = main?.scrollTop ?? null;
+      loadFile();
+    });
+    const offMissing = window.diagrade.events.onFileMissing((filename) => {
+      // FR-08: 본문 유지 + 토스트 1 회.
+      onNotify(`파일이 삭제되었습니다: ${filename}`);
+    });
+    return () => {
+      offChanged();
+      offMissing();
+    };
+  }, [loadFile, onNotify]);
+
+  // mermaid / highlight / export 메뉴 + scrollTop 복원.
   useEffect(() => {
     if (!html || !containerRef.current) return;
     const container = containerRef.current;
@@ -58,6 +88,13 @@ export function MarkdownView({ tab, onNotify }: MarkdownViewProps) {
       await applyHighlight(container);
       if (cancelled) return;
       injectExportMenus(container, { activeTabPath: tab.filePath });
+
+      // PRD-002 FR-04: 후처리 완료 후 scrollTop 복원 (reload 의 경우만 — pending null 이면 no-op).
+      if (pendingScrollTopRef.current !== null) {
+        const main = container.parentElement;
+        if (main) main.scrollTop = pendingScrollTopRef.current;
+        pendingScrollTopRef.current = null;
+      }
     })();
     return () => {
       cancelled = true;

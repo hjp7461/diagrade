@@ -13,7 +13,8 @@ export type { Config };
  */
 
 export const DEFAULT_CONFIG: Config = {
-  maxTabs: 20
+  maxTabs: 20,
+  liveReload: true
 };
 
 const MIN_MAX_TABS = 1;
@@ -37,6 +38,11 @@ export function validateConfig(raw: unknown): Config {
     Number.isFinite(candidate)
   ) {
     cfg.maxTabs = candidate;
+  }
+
+  // PRD-002 FR-13: liveReload 가 진짜 boolean 일 때만 적용. 그 외(string, null, 누락)는 default true.
+  if (typeof r['liveReload'] === 'boolean') {
+    cfg.liveReload = r['liveReload'];
   }
 
   return cfg;

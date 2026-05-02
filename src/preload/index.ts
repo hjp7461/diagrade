@@ -65,7 +65,27 @@ const events = {
     return () => {
       ipcRenderer.off(IpcChannel.AppMenuCommand, wrapped);
     };
+  },
+  // PRD-002: live reload events
+  onFileChanged: (handler: () => void): (() => void) => {
+    const wrapped = () => handler();
+    ipcRenderer.on(IpcChannel.AppFileChanged, wrapped);
+    return () => {
+      ipcRenderer.off(IpcChannel.AppFileChanged, wrapped);
+    };
+  },
+  onFileMissing: (handler: (filename: string) => void): (() => void) => {
+    const wrapped = (_e: unknown, payload: { filename: string }) => handler(payload.filename);
+    ipcRenderer.on(IpcChannel.AppFileMissing, wrapped);
+    return () => {
+      ipcRenderer.off(IpcChannel.AppFileMissing, wrapped);
+    };
   }
+} as const;
+
+const watch = {
+  setActivePath: (path: string | null): Promise<void> =>
+    ipcRenderer.invoke(IpcChannel.WatchSetActivePath, { path })
 } as const;
 
 const platform = {
@@ -90,7 +110,8 @@ const api = {
   events,
   platform,
   protocol,
-  print
+  print,
+  watch
 } as const;
 
 contextBridge.exposeInMainWorld('diagrade', api);

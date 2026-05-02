@@ -19,9 +19,9 @@ describe('validateConfig (FR-40 robustness)', () => {
   });
 
   it('FR-39: 유효한 maxTabs 는 적용된다', () => {
-    expect(validateConfig({ maxTabs: 1 })).toEqual({ maxTabs: 1 });
-    expect(validateConfig({ maxTabs: 50 })).toEqual({ maxTabs: 50 });
-    expect(validateConfig({ maxTabs: 999 })).toEqual({ maxTabs: 999 });
+    expect(validateConfig({ maxTabs: 1 }).maxTabs).toBe(1);
+    expect(validateConfig({ maxTabs: 50 }).maxTabs).toBe(50);
+    expect(validateConfig({ maxTabs: 999 }).maxTabs).toBe(999);
   });
 
   it('FR-39: maxTabs 최소값 1 미만은 기본값으로 폴백', () => {
@@ -38,7 +38,36 @@ describe('validateConfig (FR-40 robustness)', () => {
   });
 
   it('알 수 없는 키는 무시 (forward-compat: 새 키 추가 시 구버전이 깨지지 않음)', () => {
-    expect(validateConfig({ maxTabs: 5, unknownKey: 'x' })).toEqual({ maxTabs: 5 });
+    expect(validateConfig({ maxTabs: 5, unknownKey: 'x' })).toEqual(
+      expect.objectContaining({ maxTabs: 5 })
+    );
+  });
+
+  // PRD-002 FR-11/13
+  it('liveReload 기본값은 true', () => {
+    expect(validateConfig({}).liveReload).toBe(true);
+    expect(validateConfig(null).liveReload).toBe(true);
+  });
+
+  it('liveReload: false 그대로 적용', () => {
+    expect(validateConfig({ liveReload: false }).liveReload).toBe(false);
+  });
+
+  it('liveReload: true 그대로 적용', () => {
+    expect(validateConfig({ liveReload: true }).liveReload).toBe(true);
+  });
+
+  it('liveReload 잘못된 타입은 default true 로 폴백 (FR-13)', () => {
+    expect(validateConfig({ liveReload: 'true' }).liveReload).toBe(true);
+    expect(validateConfig({ liveReload: 1 }).liveReload).toBe(true);
+    expect(validateConfig({ liveReload: null }).liveReload).toBe(true);
+  });
+
+  it('maxTabs + liveReload 동시 변경 모두 보존', () => {
+    expect(validateConfig({ maxTabs: 5, liveReload: false })).toEqual({
+      maxTabs: 5,
+      liveReload: false
+    });
   });
 });
 
@@ -62,6 +91,8 @@ describe('ConfigStore (FR-38, FR-40, FR-41)', () => {
     expect(existsSync(configPath)).toBe(true);
     expect(JSON.parse(readFileSync(configPath, 'utf-8'))).toEqual(DEFAULT_CONFIG);
   });
+
+  // 위 두 테스트는 DEFAULT_CONFIG 와 직접 비교 — DEFAULT_CONFIG 가 liveReload 까지 포함하므로 OK.
 
   it('부모 디렉터리가 없어도 자동 생성', () => {
     const nestedPath = join(tmpDir, 'a', 'b', 'config.json');

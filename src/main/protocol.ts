@@ -37,6 +37,14 @@ export function unregisterTabDir(tabId: string): void {
 }
 
 /**
+ * 현재 등록된 탭 디렉터리 목록 (절대경로).
+ * PRD-002 의 watch path 검증이 같은 화이트리스트를 재사용.
+ */
+export function getRegisteredTabDirs(): string[] {
+  return Array.from(tabDirs.values());
+}
+
+/**
  * `dirAbs/targetRel` 가 합성 후에도 dirAbs 의 하위인지 (`..` traversal 차단).
  * 순수 함수 — 단위 테스트로 보안 회귀 방지.
  */

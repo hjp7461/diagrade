@@ -15,6 +15,13 @@ protocol.registerSchemesAsPrivileged([IMAGE_PROTOCOL_PRIVILEGES]);
 // productName 을 명시 — app.getPath('userData') 가 'Diagrade' 디렉터리를 사용 (FR-41).
 app.setName('Diagrade');
 
+// 테스트 격리용 escape hatch — DIAGRADE_USER_DATA 가 설정되면 그 경로를 userData 로 사용.
+// 사용자 환경에선 미설정이라 영향 없음.
+const userDataOverride = process.env['DIAGRADE_USER_DATA'];
+if (userDataOverride) {
+  app.setPath('userData', userDataOverride);
+}
+
 function createMainWindow(): BrowserWindow {
   const win = new BrowserWindow({
     width: 1280,
@@ -52,10 +59,13 @@ function createMainWindow(): BrowserWindow {
   return win;
 }
 
+let watcherRef: ReturnType<typeof registerAllIpc>['watcher'] | null = null;
+
 void app.whenReady().then(() => {
   // Config: app.getPath('userData') 의 표준 위치 (FR-41).
   const configStore = new ConfigStore(join(app.getPath('userData'), 'config.json'));
-  registerAllIpc(configStore);
+  const { watcher } = registerAllIpc(configStore);
+  watcherRef = watcher;
   registerImageProtocol();
   installMenu();
 
@@ -68,4 +78,10 @@ void app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
+});
+
+// PRD-002 FR-06: 앱 종료 시 watcher 자원 해제.
+app.on('before-quit', () => {
+  watcherRef?.stop();
+  watcherRef = null;
 });

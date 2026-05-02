@@ -11,6 +11,8 @@
 
 export interface Config {
   maxTabs: number;
+  /** PRD-002 FR-11: 파일 디스크 변경 시 활성 탭 자동 갱신. default true. */
+  liveReload: boolean;
 }
 
 export type MenuCommand =
@@ -20,7 +22,7 @@ export type MenuCommand =
   | 'save-all-diagrams'
   | 'export-pdf';
 
-/** PRD §5.1 의 IPC 채널 이름. 문자열 오타 방지용. */
+/** IPC 채널 이름. PRD-001 §5.1 + PRD-002 §5.1. */
 export const IpcChannel = {
   DialogOpenFile: 'dialog:open-file',
   DialogOpenFolder: 'dialog:open-folder',
@@ -34,6 +36,10 @@ export const IpcChannel = {
   ProtocolRegisterTabDir: 'protocol:register-tab-dir',
   ProtocolUnregisterTabDir: 'protocol:unregister-tab-dir',
   PrintPdf: 'print:pdf',
+  // PRD-002: live reload
+  WatchSetActivePath: 'watch:set-active-path',
+  AppFileChanged: 'app:file-changed',
+  AppFileMissing: 'app:file-missing',
   AppFilesOpened: 'app:files-opened',
   AppMenuCommand: 'app:menu-command'
 } as const;
