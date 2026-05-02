@@ -12,6 +12,10 @@ appId: com.diagrade.app
 productName: Diagrade
 copyright: Diagrade contributors
 
+# v1.0 범위에선 자동 release 발행 비활성 (PRD-001 §9: 자동 업데이트 미적용).
+# CI 가 builder 의 자동 GitHub publish 를 시도하지 않도록 명시 — GH_TOKEN 요구로 실패하는 것 방지.
+publish: null
+
 directories:
   # M1 의 .gitignore 가 release/ 를 제외 (산출물 커밋 금지 — pitfall #12).
   output: release
