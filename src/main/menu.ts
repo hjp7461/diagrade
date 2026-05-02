@@ -79,6 +79,16 @@ function buildTemplate(): MenuItemConstructorOptions[] {
       },
       { type: 'separator' },
       {
+        label: '다이어그램 저장 (SVG 일괄)',
+        click: () => sendMenuCommand('save-all-diagrams')
+      },
+      {
+        label: 'PDF 로 내보내기...',
+        accelerator: 'CmdOrCtrl+P',
+        click: () => sendMenuCommand('export-pdf')
+      },
+      { type: 'separator' },
+      {
         label: '탭 닫기',
         accelerator: 'CmdOrCtrl+W',
         click: () => sendMenuCommand('close-tab')

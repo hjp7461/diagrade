@@ -19,3 +19,13 @@ export function suggestedDiagramFileName(
   const base = basenameOfPath(activeTabPath).replace(/\.(md|markdown)$/i, '');
   return `${base}-${oneBasedIndex}.${ext}`;
 }
+
+/**
+ * PDF 내보내기 기본 파일명. FR-36.
+ * 활성 탭이 있으면 `{basename without ext}.pdf`, 없으면 'document.pdf'.
+ */
+export function suggestedPdfFileName(activeTabPath: string | null): string {
+  if (!activeTabPath) return 'document.pdf';
+  const base = basenameOfPath(activeTabPath).replace(/\.(md|markdown)$/i, '');
+  return `${base}.pdf`;
+}

@@ -77,6 +77,11 @@ const platform = {
   getPathForFile: (file: File): string => webUtils.getPathForFile(file)
 } as const;
 
+const print = {
+  pdf: (defaultPath?: string): Promise<string | null> =>
+    ipcRenderer.invoke(IpcChannel.PrintPdf, { defaultPath })
+} as const;
+
 const api = {
   version: '0.1.0',
   dialog,
@@ -84,7 +89,8 @@ const api = {
   config,
   events,
   platform,
-  protocol
+  protocol,
+  print
 } as const;
 
 contextBridge.exposeInMainWorld('diagrade', api);

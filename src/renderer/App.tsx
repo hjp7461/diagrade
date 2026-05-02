@@ -125,7 +125,11 @@ export function App() {
         onClose={tabs.closeById}
       />
       <main style={mainStyle}>
-        {activeTab ? <MarkdownView key={activeTab.id} tab={activeTab} /> : <EmptyState />}
+        {activeTab ? (
+          <MarkdownView key={activeTab.id} tab={activeTab} onNotify={notifications.push} />
+        ) : (
+          <EmptyState />
+        )}
       </main>
       <NotificationStack items={notifications.items} onDismiss={notifications.dismiss} />
     </div>

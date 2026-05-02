@@ -13,7 +13,12 @@ export interface Config {
   maxTabs: number;
 }
 
-export type MenuCommand = 'close-tab' | 'next-tab' | 'prev-tab';
+export type MenuCommand =
+  | 'close-tab'
+  | 'next-tab'
+  | 'prev-tab'
+  | 'save-all-diagrams'
+  | 'export-pdf';
 
 /** PRD §5.1 의 IPC 채널 이름. 문자열 오타 방지용. */
 export const IpcChannel = {
@@ -28,6 +33,7 @@ export const IpcChannel = {
   ConfigSet: 'config:set',
   ProtocolRegisterTabDir: 'protocol:register-tab-dir',
   ProtocolUnregisterTabDir: 'protocol:unregister-tab-dir',
+  PrintPdf: 'print:pdf',
   AppFilesOpened: 'app:files-opened',
   AppMenuCommand: 'app:menu-command'
 } as const;
