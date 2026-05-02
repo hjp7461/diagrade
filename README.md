@@ -24,16 +24,41 @@
 
 ## 빌드 / 실행
 
-Node.js 22+ 필요.
+Node.js 22+ 필요. 그 외 사전 설치는 없음.
 
 ```bash
 npm install
 npm run dev          # 개발 (Vite HMR + Electron)
-npm run build        # 프로덕션 번들
-npm run dist         # 현재 OS 산출물 (DMG / NSIS / AppImage)
+npm run build        # 프로덕션 번들 (out/)
 npm test             # 단위 테스트 (Vitest)
 npm run lint         # ESLint
 npm run typecheck    # TypeScript
+```
+
+### 산출물 만들기 (electron-builder)
+
+```bash
+npm run dist         # 현재 OS 자동 감지 — DMG / NSIS / AppImage
+npm run dist:mac     # macOS DMG (arm64 + x64)
+npm run dist:win     # Windows NSIS x64
+npm run dist:linux   # Linux AppImage x64
+npm run dist:dir     # 패키지 안 되는 unpacked dir (빠른 검증용)
+```
+
+산출물은 `release/` 디렉터리에 생성됩니다 (git 추적 제외).
+
+### macOS 첫 실행 시 Gatekeeper 경고 우회
+
+코드 서명 / Notarization 은 v1.0 범위 외입니다 (`PRD-001 §9`). DMG 또는 `.app` 을 처음 실행하면
+**"확인되지 않은 개발자가 만든 앱이라 열 수 없습니다"** 경고가 뜹니다. 다음으로 우회하세요.
+
+1. Finder 에서 `Diagrade.app` 을 **우클릭 (Control+클릭) → "열기"**
+2. 다시 한 번 표시되는 다이얼로그에서 "열기" 클릭
+3. 이후엔 일반 더블클릭으로 열림
+
+또는 터미널에서 한 번:
+```bash
+xattr -dr com.apple.quarantine /Applications/Diagrade.app
 ```
 
 ## 라이선스

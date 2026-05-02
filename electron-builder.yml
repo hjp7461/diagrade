@@ -1,0 +1,75 @@
+# electron-builder 설정. PRD-001 §10 M7.
+#
+# 정책:
+#   - 코드 서명 / Notarization 비활성 (PRD §9 비범위, v1.0).
+#     사용자는 macOS 의 "확인되지 않은 개발자" 경고를 수동 우회.
+#   - 자동 업데이트 비활성 (PRD §9). electron-updater 미적용.
+#   - asar: true (default) — 단일 archive 로 성능 + 부분 보호.
+#   - production dependencies 가 package.json 에 0 개라 node_modules 거의 미포함.
+#     electron-vite 가 모든 의존성을 out/ 으로 번들했기 때문.
+
+appId: com.diagrade.app
+productName: Diagrade
+copyright: Diagrade contributors
+
+directories:
+  # M1 의 .gitignore 가 release/ 를 제외 (산출물 커밋 금지 — pitfall #12).
+  output: release
+  # 아이콘 / DMG 배경 등 빌드 리소스. assets/icons 안에 들어감.
+  buildResources: assets
+
+# electron-vite 의 출력만 패키지에 포함. node_modules 는 production deps 가 없어 거의 비어있음.
+files:
+  - out/**/*
+  - package.json
+  - "!**/{.eslintrc*,.prettierrc*,*.map,*.test.*,__tests__,tests}"
+
+asar: true
+
+# ---------- macOS (DMG) ----------
+mac:
+  target:
+    - target: dmg
+      arch:
+        - arm64
+        - x64
+  category: public.app-category.developer-tools
+  # 코드 서명 비활성. identity: null 이 명시적 opt-out.
+  identity: null
+  hardenedRuntime: false
+  gatekeeperAssess: false
+
+dmg:
+  # 단순 DMG 레이아웃. 아이콘 위치는 표준 좌·우 배치.
+  contents:
+    - x: 130
+      y: 220
+    - x: 410
+      y: 220
+      type: link
+      path: /Applications
+
+# ---------- Windows (NSIS) ----------
+win:
+  target:
+    - target: nsis
+      arch: x64
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  perMachine: false
+  deleteAppDataOnUninstall: false
+
+# ---------- Linux (AppImage) ----------
+linux:
+  target:
+    - target: AppImage
+      arch: x64
+  category: Office
+  # AppImage 는 자체 desktop 항목 사용. category 만 명시.
+
+# 주의:
+# - 아이콘 자산 (assets/icon.{icns,ico,png}) 이 없으면 electron-builder 가 Electron 기본 아이콘
+#   사용. v1.0 에서는 그대로 진행 (시각 식별은 후속 변경 PRD 의 범위).
+# - 첫 빌드 후 release/ 디렉터리에 산출물 생성. .gitignore 제외 대상.
