@@ -144,6 +144,15 @@ npm run test:e2e     # E2E — 9 케이스 (실 Electron 런타임에서 보안/
 - [ ] 잘못된 값 (0, 5, 'big' 등) → default 2 폴백
 - [ ] 변경 후 다음 ⬇ PNG export 부터 즉시 적용 (앱 재시작 X)
 
+#### 검색 정규식 / Whole word (PRD-007)
+
+- [ ] 검색바의 `Ab` 토글 → 단어 경계 매칭 (`set` 검색이 `setting`/`subset` 미매칭)
+- [ ] 검색바의 `.*` 토글 → 정규식 모드 (`\d+`, `\w+`, `function \w+` 등 패턴 매칭)
+- [ ] `Aa + Ab + .*` 자유 조합 — 모든 토글 독립
+- [ ] 잘못된 정규식 (`(unclosed`, `[`) → 빨간 `0/0` + 앱 크래시 X
+- [ ] zero-width regex (`(?=foo)`) → 무한 루프 X
+- [ ] Esc 로 검색 닫으면 토글 모두 reset (다음 열 때 모두 OFF)
+
 #### 산출물 호환성 (CLAUDE.md pitfalls 회귀 방지)
 
 저장된 SVG 한 개를 골라:

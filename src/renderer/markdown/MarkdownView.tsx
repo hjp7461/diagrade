@@ -32,6 +32,8 @@ interface SearchState {
   open: boolean;
   query: string;
   caseSensitive: boolean;
+  wholeWord: boolean;
+  regex: boolean;
 }
 
 /**
@@ -57,16 +59,26 @@ export function MarkdownView({ tab, theme, pngScale, onNotify }: MarkdownViewPro
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchCaseSensitive, setSearchCaseSensitive] = useState(false);
+  const [searchWholeWord, setSearchWholeWord] = useState(false);
+  const [searchRegex, setSearchRegex] = useState(false);
   const [matchCount, setMatchCount] = useState(0);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [focusTrigger, setFocusTrigger] = useState(0);
 
   // 비-effect 코드에서 최신 검색 state 를 참조하기 위한 ref (post-render effect 의 의존성 회피).
-  const searchStateRef = useRef<SearchState>({ open: false, query: '', caseSensitive: false });
+  const searchStateRef = useRef<SearchState>({
+    open: false,
+    query: '',
+    caseSensitive: false,
+    wholeWord: false,
+    regex: false
+  });
   searchStateRef.current = {
     open: searchOpen,
     query: searchQuery,
-    caseSensitive: searchCaseSensitive
+    caseSensitive: searchCaseSensitive,
+    wholeWord: searchWholeWord,
+    regex: searchRegex
   };
 
   // 매칭 element 배열 — 클래스 토글 / 스크롤에 사용. state 가 아닌 ref (re-render 안 트리거).
@@ -121,7 +133,13 @@ export function MarkdownView({ tab, theme, pngScale, onNotify }: MarkdownViewPro
    * resetActive: true 이면 페이지 단위 결정 무시하고 0 으로 (FR-25 reload 후).
    */
   const runSearch = useCallback(
-    (query: string, caseSensitive: boolean, resetActive: boolean): void => {
+    (
+      query: string,
+      caseSensitive: boolean,
+      wholeWord: boolean,
+      regex: boolean,
+      resetActive: boolean
+    ): void => {
       const container = containerRef.current;
       if (!container) return;
 
@@ -134,7 +152,7 @@ export function MarkdownView({ tab, theme, pngScale, onNotify }: MarkdownViewPro
         return;
       }
 
-      const matches = findMatches(container, query, caseSensitive);
+      const matches = findMatches(container, query, { caseSensitive, wholeWord, regex });
       matchElementsRef.current = matches;
       setMatchCount(matches.length);
 
@@ -164,7 +182,8 @@ export function MarkdownView({ tab, theme, pngScale, onNotify }: MarkdownViewPro
       setSearchQuery(q);
       if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
       searchDebounceRef.current = setTimeout(() => {
-        runSearch(q, searchStateRef.current.caseSensitive, false);
+        const s = searchStateRef.current;
+        runSearch(q, s.caseSensitive, s.wholeWord, s.regex, false);
       }, SEARCH_DEBOUNCE_MS);
     },
     [runSearch]
@@ -173,8 +192,20 @@ export function MarkdownView({ tab, theme, pngScale, onNotify }: MarkdownViewPro
   const handleCaseToggle = useCallback((): void => {
     const next = !searchCaseSensitive;
     setSearchCaseSensitive(next);
-    runSearch(searchQuery, next, false);
-  }, [runSearch, searchCaseSensitive, searchQuery]);
+    runSearch(searchQuery, next, searchWholeWord, searchRegex, false);
+  }, [runSearch, searchCaseSensitive, searchQuery, searchWholeWord, searchRegex]);
+
+  const handleWholeWordToggle = useCallback((): void => {
+    const next = !searchWholeWord;
+    setSearchWholeWord(next);
+    runSearch(searchQuery, searchCaseSensitive, next, searchRegex, false);
+  }, [runSearch, searchCaseSensitive, searchQuery, searchWholeWord, searchRegex]);
+
+  const handleRegexToggle = useCallback((): void => {
+    const next = !searchRegex;
+    setSearchRegex(next);
+    runSearch(searchQuery, searchCaseSensitive, searchWholeWord, next, false);
+  }, [runSearch, searchCaseSensitive, searchQuery, searchWholeWord, searchRegex]);
 
   const navigate = useCallback(
     (delta: 1 | -1): void => {
@@ -202,6 +233,10 @@ export function MarkdownView({ tab, theme, pngScale, onNotify }: MarkdownViewPro
     matchElementsRef.current = [];
     setSearchOpen(false);
     setSearchQuery('');
+    // PRD-007 FR-03: 닫을 때 토글 모두 reset.
+    setSearchCaseSensitive(false);
+    setSearchWholeWord(false);
+    setSearchRegex(false);
     setMatchCount(0);
     setActiveIndex(-1);
   }, []);
@@ -233,7 +268,7 @@ export function MarkdownView({ tab, theme, pngScale, onNotify }: MarkdownViewPro
       if (cancelled) return;
       const s = searchStateRef.current;
       if (s.open && s.query) {
-        runSearch(s.query, s.caseSensitive, /* resetActive */ true);
+        runSearch(s.query, s.caseSensitive, s.wholeWord, s.regex, /* resetActive */ true);
       } else {
         // html 이 바뀌면 ref 도 무효 — 다음 검색을 위해 비움.
         matchElementsRef.current = [];
@@ -330,11 +365,15 @@ export function MarkdownView({ tab, theme, pngScale, onNotify }: MarkdownViewPro
         <SearchBar
           query={searchQuery}
           caseSensitive={searchCaseSensitive}
+          wholeWord={searchWholeWord}
+          regex={searchRegex}
           currentIndex={activeIndex}
           totalMatches={matchCount}
           focusTrigger={focusTrigger}
           onQueryChange={handleQueryChange}
           onCaseToggle={handleCaseToggle}
+          onWholeWordToggle={handleWholeWordToggle}
+          onRegexToggle={handleRegexToggle}
           onPrev={() => navigate(-1)}
           onNext={() => navigate(1)}
           onClose={handleClose}

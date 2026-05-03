@@ -3,6 +3,10 @@ import { useEffect, useRef, type KeyboardEvent } from 'react';
 export interface SearchBarProps {
   query: string;
   caseSensitive: boolean;
+  /** PRD-007: 단어 경계 매칭. */
+  wholeWord: boolean;
+  /** PRD-007: 사용자 입력을 정규식으로. */
+  regex: boolean;
   /** 0-based 활성 매칭 위치 (UI 에선 +1 표시). 매칭 0 개면 -1. */
   currentIndex: number;
   totalMatches: number;
@@ -10,6 +14,8 @@ export interface SearchBarProps {
   focusTrigger: number;
   onQueryChange: (q: string) => void;
   onCaseToggle: () => void;
+  onWholeWordToggle: () => void;
+  onRegexToggle: () => void;
   onPrev: () => void;
   onNext: () => void;
   onClose: () => void;
@@ -28,11 +34,15 @@ export interface SearchBarProps {
 export function SearchBar({
   query,
   caseSensitive,
+  wholeWord,
+  regex,
   currentIndex,
   totalMatches,
   focusTrigger,
   onQueryChange,
   onCaseToggle,
+  onWholeWordToggle,
+  onRegexToggle,
   onPrev,
   onNext,
   onClose
@@ -92,6 +102,34 @@ export function SearchBar({
         aria-pressed={caseSensitive}
       >
         Aa
+      </button>
+
+      <button
+        type="button"
+        className={
+          'diagrade-search-bar__btn diagrade-search-bar__btn--toggle' +
+          (wholeWord ? ' is-active' : '')
+        }
+        onClick={onWholeWordToggle}
+        aria-label="단어 단위 매칭"
+        title="단어 단위 매칭 (whole word)"
+        aria-pressed={wholeWord}
+      >
+        Ab
+      </button>
+
+      <button
+        type="button"
+        className={
+          'diagrade-search-bar__btn diagrade-search-bar__btn--toggle' +
+          (regex ? ' is-active' : '')
+        }
+        onClick={onRegexToggle}
+        aria-label="정규식 사용"
+        title="정규식 사용 (regex)"
+        aria-pressed={regex}
+      >
+        .*
       </button>
 
       <span
