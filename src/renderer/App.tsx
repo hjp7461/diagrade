@@ -158,12 +158,12 @@ export function App() {
 
 function EmptyState() {
   return (
-    <div style={emptyStyle}>
+    <div className="diagrade-empty-state" style={emptyStyle}>
       <h1 style={{ marginBottom: 8 }}>Diagrade</h1>
-      <p style={{ color: '#666' }}>
+      <p className="diagrade-empty-primary">
         마크다운 파일을 창에 끌어다 놓거나 <kbd>{cmdLabel()}+O</kbd> 로 여세요.
       </p>
-      <p style={{ color: '#666', fontSize: 13, marginTop: 16 }}>
+      <p className="diagrade-empty-muted" style={{ fontSize: 13, marginTop: 16 }}>
         폴더를 끌어다 놓으면 1-depth 의 마크다운만 자동으로 탭으로 열립니다.
       </p>
     </div>
@@ -186,8 +186,8 @@ const appStyle: React.CSSProperties = {
 const mainStyle: React.CSSProperties = {
   flex: 1,
   overflow: 'auto',
-  padding: 24,
-  background: '#fff'
+  padding: 24
+  // background 는 theme.css 의 main.diagrade-content-main 에서 관리.
 };
 
 const emptyStyle: React.CSSProperties = {
@@ -196,8 +196,8 @@ const emptyStyle: React.CSSProperties = {
   alignItems: 'center',
   justifyContent: 'center',
   height: '100%',
-  color: '#333',
   textAlign: 'center'
+  // color / background 는 theme.css 의 .diagrade-empty-state 에서 관리.
 };
 
 

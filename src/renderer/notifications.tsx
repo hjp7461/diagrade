@@ -30,18 +30,24 @@ interface NotificationStackProps {
   onDismiss: (id: string) => void;
 }
 
+/**
+ * 토스트 스택. PRD-005 마이그레이션 — 색상은 CSS 변수, layout 은 inline.
+ */
 export function NotificationStack({ items, onDismiss }: NotificationStackProps) {
   if (items.length === 0) return null;
   return (
-    <div style={stackStyle} aria-live="polite">
+    <div className="diagrade-toast-stack" style={stackLayout} aria-live="polite">
       {items.map((n) => (
-        <div key={n.id} style={toastStyle} role="status">
-          <span style={toastMessageStyle}>{n.message}</span>
+        <div key={n.id} className="diagrade-toast" style={toastLayout} role="status">
+          <span className="diagrade-toast-message" style={toastMessageLayout}>
+            {n.message}
+          </span>
           <button
             type="button"
+            className="diagrade-toast-dismiss"
             onClick={() => onDismiss(n.id)}
             aria-label="알림 닫기"
-            style={dismissButtonStyle}
+            style={dismissButtonLayout}
           >
             ✕
           </button>
@@ -51,7 +57,7 @@ export function NotificationStack({ items, onDismiss }: NotificationStackProps) 
   );
 }
 
-const stackStyle: React.CSSProperties = {
+const stackLayout: React.CSSProperties = {
   position: 'fixed',
   bottom: 16,
   right: 16,
@@ -62,27 +68,23 @@ const stackStyle: React.CSSProperties = {
   maxWidth: 360
 };
 
-const toastStyle: React.CSSProperties = {
+const toastLayout: React.CSSProperties = {
   display: 'flex',
   alignItems: 'flex-start',
   gap: 8,
   padding: '10px 12px',
-  background: '#1f2937',
-  color: '#fff',
   borderRadius: 6,
-  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
   fontSize: 13,
   lineHeight: 1.4
 };
 
-const toastMessageStyle: React.CSSProperties = {
+const toastMessageLayout: React.CSSProperties = {
   flex: 1
 };
 
-const dismissButtonStyle: React.CSSProperties = {
+const dismissButtonLayout: React.CSSProperties = {
   border: 'none',
   background: 'transparent',
-  color: '#cbd5e1',
   cursor: 'pointer',
   padding: 0,
   fontSize: 14,

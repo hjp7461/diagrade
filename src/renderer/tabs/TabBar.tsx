@@ -7,11 +7,15 @@ interface TabBarProps {
   onClose: (id: string) => void;
 }
 
+/**
+ * 탭바. PRD-005 마이그레이션 — 색상 inline 제거 + CSS 클래스 사용.
+ * Layout (display/flex/padding) 은 inline 유지.
+ */
 export function TabBar({ tabs, activeTabId, onSwitch, onClose }: TabBarProps) {
   if (tabs.length === 0) return null;
 
   return (
-    <div role="tablist" aria-label="열린 문서" style={tabBarStyle}>
+    <div role="tablist" aria-label="열린 문서" className="diagrade-tab-bar" style={tabBarLayout}>
       {tabs.map((tab) => {
         const isActive = tab.id === activeTabId;
         return (
@@ -21,9 +25,12 @@ export function TabBar({ tabs, activeTabId, onSwitch, onClose }: TabBarProps) {
             aria-selected={isActive}
             title={tab.filePath}
             onClick={() => onSwitch(tab.id)}
-            style={{ ...tabStyle, ...(isActive ? activeTabStyle : {}) }}
+            className={'diagrade-tab' + (isActive ? ' is-active' : '')}
+            style={tabLayout}
           >
-            <span style={tabLabelStyle}>{tab.fileName}</span>
+            <span className="diagrade-tab-label" style={tabLabelLayout}>
+              {tab.fileName}
+            </span>
             <button
               type="button"
               aria-label={`${tab.fileName} 닫기`}
@@ -31,7 +38,8 @@ export function TabBar({ tabs, activeTabId, onSwitch, onClose }: TabBarProps) {
                 e.stopPropagation();
                 onClose(tab.id);
               }}
-              style={closeButtonStyle}
+              className="diagrade-tab-close"
+              style={closeButtonLayout}
             >
               ✕
             </button>
@@ -42,48 +50,37 @@ export function TabBar({ tabs, activeTabId, onSwitch, onClose }: TabBarProps) {
   );
 }
 
-const tabBarStyle: React.CSSProperties = {
+const tabBarLayout: React.CSSProperties = {
   display: 'flex',
   flexWrap: 'nowrap',
   overflowX: 'auto',
-  borderBottom: '1px solid #ddd',
-  background: '#f7f7f7',
   fontFamily:
     'system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
   fontSize: 13,
   userSelect: 'none'
 };
 
-const tabStyle: React.CSSProperties = {
+const tabLayout: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   gap: 6,
   padding: '6px 10px 6px 12px',
-  borderRight: '1px solid #ddd',
   cursor: 'default',
   maxWidth: 240,
   whiteSpace: 'nowrap'
 };
 
-const activeTabStyle: React.CSSProperties = {
-  background: '#fff',
-  fontWeight: 500,
-  borderBottom: '2px solid #2b6cb0',
-  marginBottom: -1
-};
-
-const tabLabelStyle: React.CSSProperties = {
+const tabLabelLayout: React.CSSProperties = {
   overflow: 'hidden',
   textOverflow: 'ellipsis',
   flex: 1
 };
 
-const closeButtonStyle: React.CSSProperties = {
+const closeButtonLayout: React.CSSProperties = {
   border: 'none',
   background: 'transparent',
   cursor: 'pointer',
   padding: '0 4px',
   fontSize: 12,
-  color: '#888',
   lineHeight: 1
 };

@@ -27,6 +27,37 @@
   --diagrade-mark-fg: inherit;
   --diagrade-mark-active-bg: #f59e0b;
   --diagrade-mark-active-fg: #1a202c;
+
+  /* PRD-005: 앱 chrome */
+  --diagrade-chrome-border: #dddddd;
+  --diagrade-chrome-fg: #1f2937;
+  --diagrade-chrome-fg-muted: #888888;
+  --diagrade-tab-bar-bg: #f7f7f7;
+  --diagrade-tab-active-bg: #ffffff;
+  --diagrade-tab-active-border: #2b6cb0;
+  --diagrade-toast-bg: #1f2937;
+  --diagrade-toast-fg: #ffffff;
+  --diagrade-toast-dismiss: #cbd5e1;
+  --diagrade-search-bar-bg: #ffffff;
+  --diagrade-search-bar-border: #cbd5e0;
+  --diagrade-search-input-border: #e2e8f0;
+  --diagrade-search-input-focus: #2b6cb0;
+  --diagrade-search-btn-fg: #4a5568;
+  --diagrade-search-btn-hover-bg: #edf2f7;
+  --diagrade-search-btn-hover-border: #cbd5e0;
+  --diagrade-search-btn-toggle-bg: #bee3f8;
+  --diagrade-search-btn-toggle-border: #2b6cb0;
+  --diagrade-search-btn-toggle-fg: #2c5282;
+  --diagrade-empty-bg: #ffffff;
+  --diagrade-empty-fg: #333333;
+  --diagrade-empty-fg-muted: #666666;
+  --diagrade-error-fg: #c53030;
+  --diagrade-error-bg: #fff5f5;
+  --diagrade-error-border: #fed7d7;
+  --diagrade-error-code-bg: #ffffff;
+  --diagrade-mermaid-error-fg-secondary: #742a2a;
+  --diagrade-shadow: rgba(0, 0, 0, 0.1);
+  --diagrade-toast-shadow: rgba(0, 0, 0, 0.15);
 }
 
 .diagrade-theme-dark {
@@ -46,6 +77,37 @@
   --diagrade-mark-fg: #ffffff;
   --diagrade-mark-active-bg: #d97706;
   --diagrade-mark-active-fg: #ffffff;
+
+  /* PRD-005: 앱 chrome dark */
+  --diagrade-chrome-border: #4a5568;
+  --diagrade-chrome-fg: #e2e8f0;
+  --diagrade-chrome-fg-muted: #9ca3af;
+  --diagrade-tab-bar-bg: #2d3748;
+  --diagrade-tab-active-bg: #1a202c;
+  --diagrade-tab-active-border: #63b3ed;
+  --diagrade-toast-bg: #4a5568;
+  --diagrade-toast-fg: #f7fafc;
+  --diagrade-toast-dismiss: #a0aec0;
+  --diagrade-search-bar-bg: #2d3748;
+  --diagrade-search-bar-border: #4a5568;
+  --diagrade-search-input-border: #4a5568;
+  --diagrade-search-input-focus: #63b3ed;
+  --diagrade-search-btn-fg: #cbd5e0;
+  --diagrade-search-btn-hover-bg: #4a5568;
+  --diagrade-search-btn-hover-border: #718096;
+  --diagrade-search-btn-toggle-bg: #2c5282;
+  --diagrade-search-btn-toggle-border: #63b3ed;
+  --diagrade-search-btn-toggle-fg: #ebf8ff;
+  --diagrade-empty-bg: #1a202c;
+  --diagrade-empty-fg: #e2e8f0;
+  --diagrade-empty-fg-muted: #a0aec0;
+  --diagrade-error-fg: #fca5a5;
+  --diagrade-error-bg: #2d1f1f;
+  --diagrade-error-border: #5b2727;
+  --diagrade-error-code-bg: #1a1010;
+  --diagrade-mermaid-error-fg-secondary: #fcb6b6;
+  --diagrade-shadow: rgba(0, 0, 0, 0.3);
+  --diagrade-toast-shadow: rgba(0, 0, 0, 0.4);
 }
 
 /* ─────────────────────────────────────────────────────────────────
@@ -130,4 +192,82 @@
 .diagrade-search-match.active {
   background: var(--diagrade-mark-active-bg);
   color: var(--diagrade-mark-active-fg);
+}
+
+/* ─────────────────────────────────────────────────────────────────
+ * PRD-005: 앱 chrome — TabBar / Toast / EmptyState / 에러 박스
+ * 색상만 CSS 클래스 / 변수로. layout 은 컴포넌트의 inline 으로 유지.
+ * ───────────────────────────────────────────────────────────────── */
+
+/* TabBar (FR-01) */
+.diagrade-tab-bar {
+  background: var(--diagrade-tab-bar-bg);
+  border-bottom: 1px solid var(--diagrade-chrome-border);
+  color: var(--diagrade-chrome-fg);
+}
+
+.diagrade-tab {
+  border-right: 1px solid var(--diagrade-chrome-border);
+  color: var(--diagrade-chrome-fg);
+}
+
+.diagrade-tab.is-active {
+  background: var(--diagrade-tab-active-bg);
+  border-bottom: 2px solid var(--diagrade-tab-active-border);
+  margin-bottom: -1px;
+}
+
+.diagrade-tab-close {
+  color: var(--diagrade-chrome-fg-muted);
+}
+
+.diagrade-tab-close:hover {
+  color: var(--diagrade-chrome-fg);
+}
+
+/* NotificationStack (FR-03) */
+.diagrade-toast {
+  background: var(--diagrade-toast-bg);
+  color: var(--diagrade-toast-fg);
+  box-shadow: 0 4px 12px var(--diagrade-toast-shadow);
+}
+
+.diagrade-toast-dismiss {
+  color: var(--diagrade-toast-dismiss);
+}
+
+/* EmptyState (FR-04) */
+.diagrade-empty-state {
+  background: var(--diagrade-empty-bg);
+  color: var(--diagrade-empty-fg);
+}
+
+.diagrade-empty-primary {
+  color: var(--diagrade-empty-fg-muted);
+}
+
+.diagrade-empty-muted {
+  color: var(--diagrade-empty-fg-muted);
+}
+
+/* MarkdownView 의 파일 읽기 에러 (FR-05) */
+.diagrade-error-box {
+  color: var(--diagrade-error-fg);
+  background: var(--diagrade-error-bg);
+  border: 1px solid var(--diagrade-error-border);
+}
+
+/* Mermaid error fallback (FR-06) */
+.diagrade-mermaid-error {
+  color: var(--diagrade-error-fg);
+  background: var(--diagrade-error-bg);
+  border: 1px solid var(--diagrade-error-border);
+}
+
+.diagrade-mermaid-error pre {
+  background: var(--diagrade-error-code-bg);
+}
+
+.diagrade-mermaid-error .diagrade-mermaid-error-message {
+  color: var(--diagrade-mermaid-error-fg-secondary);
 }

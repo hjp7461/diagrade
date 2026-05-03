@@ -1,8 +1,11 @@
 /*
- * 검색바 스타일. PRD-003 §3.5.
+ * 검색바 스타일. PRD-003 §3.5 + PRD-005 (다크 변수 통합).
  *   - 본문 우상단 fixed overlay
  *   - export 메뉴와 z-index 분리
  *   - 인쇄 시 숨김 (FR-23)
+ *   - 색상은 모두 theme.css 의 CSS 변수 사용
+ *
+ * 매칭 하이라이트 색은 theme.css 에서 관리 (--diagrade-mark-* 변수).
  */
 
 .diagrade-search-bar {
@@ -14,10 +17,11 @@
   align-items: center;
   gap: 4px;
   padding: 6px 8px;
-  background: #fff;
-  border: 1px solid #cbd5e0;
+  background: var(--diagrade-search-bar-bg);
+  color: var(--diagrade-chrome-fg);
+  border: 1px solid var(--diagrade-search-bar-border);
   border-radius: 6px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px var(--diagrade-shadow);
   font-family: inherit;
   font-size: 13px;
   max-width: 360px;
@@ -27,7 +31,9 @@
   flex: 1;
   min-width: 200px;
   padding: 4px 8px;
-  border: 1px solid #e2e8f0;
+  background: var(--diagrade-search-bar-bg);
+  color: var(--diagrade-chrome-fg);
+  border: 1px solid var(--diagrade-search-input-border);
   border-radius: 4px;
   font-family: inherit;
   font-size: 13px;
@@ -35,25 +41,25 @@
 }
 
 .diagrade-search-bar__input:focus {
-  border-color: #2b6cb0;
+  border-color: var(--diagrade-search-input-focus);
 }
 
 .diagrade-search-bar__count {
   min-width: 38px;
   text-align: center;
-  color: #4a5568;
+  color: var(--diagrade-search-btn-fg);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
 .diagrade-search-bar__count--empty {
-  color: #c53030;
+  color: var(--diagrade-error-fg);
 }
 
 .diagrade-search-bar__btn {
   padding: 4px 6px;
   background: transparent;
-  color: #4a5568;
+  color: var(--diagrade-search-btn-fg);
   border: 1px solid transparent;
   border-radius: 4px;
   cursor: pointer;
@@ -63,8 +69,8 @@
 }
 
 .diagrade-search-bar__btn:hover:not(:disabled) {
-  background: #edf2f7;
-  border-color: #cbd5e0;
+  background: var(--diagrade-search-btn-hover-bg);
+  border-color: var(--diagrade-search-btn-hover-border);
 }
 
 .diagrade-search-bar__btn:disabled {
@@ -73,30 +79,16 @@
 }
 
 .diagrade-search-bar__btn--toggle.is-active {
-  background: #bee3f8;
-  border-color: #2b6cb0;
-  color: #2c5282;
+  background: var(--diagrade-search-btn-toggle-bg);
+  border-color: var(--diagrade-search-btn-toggle-border);
+  color: var(--diagrade-search-btn-toggle-fg);
 }
 
 .diagrade-search-bar__close {
   margin-left: 4px;
 }
 
-/* 매칭 하이라이트 */
-.diagrade-search-match {
-  background: #fef3c7;
-  color: inherit;
-  padding: 0;
-  border-radius: 2px;
-}
-
-.diagrade-search-match.active {
-  background: #f59e0b;
-  color: #1a202c;
-}
-
-/* FR-23: 인쇄 시 검색바 숨김 + 매칭 하이라이트 노출 (사용자 의도라 인쇄에 박혀도 OK).
- * 만약 매칭 하이라이트도 숨기려면 .diagrade-search-match 도 추가 — 현재는 노출 유지. */
+/* FR-23: 인쇄 시 검색바 숨김. 매칭 하이라이트는 시각 정보로 노출 유지. */
 @media print {
   .diagrade-search-bar {
     display: none;

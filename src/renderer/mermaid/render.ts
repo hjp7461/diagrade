@@ -18,14 +18,12 @@ function makeId(): string {
 
 function buildErrorFallback(originalCode: string, errorMessage: string): HTMLElement {
   // FR-08: 원본 코드 + 오류 메시지 표시.
+  // PRD-005: 색은 theme.css 의 .diagrade-mermaid-error 에서 관리. layout 만 inline.
   const container = document.createElement('div');
   container.className = MERMAID_ERROR_CLASS;
   Object.assign(container.style, {
     padding: '12px',
-    background: '#fff5f5',
-    border: '1px solid #fed7d7',
     borderRadius: '4px',
-    color: '#c53030',
     fontFamily: 'system-ui, -apple-system, sans-serif',
     margin: '12px 0'
   } as Partial<CSSStyleDeclaration>);
@@ -35,11 +33,11 @@ function buildErrorFallback(originalCode: string, errorMessage: string): HTMLEle
   container.appendChild(title);
 
   const msg = document.createElement('p');
+  msg.className = 'diagrade-mermaid-error-message';
   Object.assign(msg.style, {
     margin: '8px 0',
     fontFamily: 'ui-monospace, "SF Mono", Menlo, monospace',
     fontSize: '13px',
-    color: '#742a2a',
     whiteSpace: 'pre-wrap'
   } as Partial<CSSStyleDeclaration>);
   msg.textContent = errorMessage;
@@ -47,7 +45,6 @@ function buildErrorFallback(originalCode: string, errorMessage: string): HTMLEle
 
   const codeWrapper = document.createElement('pre');
   Object.assign(codeWrapper.style, {
-    background: '#fff',
     padding: '8px',
     borderRadius: '4px',
     overflow: 'auto',

@@ -307,7 +307,7 @@ export function MarkdownView({ tab, theme, onNotify }: MarkdownViewProps) {
 
   if (error) {
     return (
-      <div style={errorStyle} role="alert">
+      <div className="diagrade-error-box" style={errorStyle} role="alert">
         <strong>파일을 읽을 수 없습니다:</strong> {error}
       </div>
     );
@@ -343,10 +343,8 @@ export function MarkdownView({ tab, theme, onNotify }: MarkdownViewProps) {
 
 const errorStyle: React.CSSProperties = {
   padding: 16,
-  color: '#c53030',
-  background: '#fff5f5',
-  border: '1px solid #fed7d7',
   borderRadius: 4
+  // color / background / border 는 theme.css 의 .diagrade-error-box 에서 관리.
 };
 
 const contentStyle: React.CSSProperties = {
