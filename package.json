@@ -52,7 +52,7 @@
     "shiki": "^1.29.2",
     "typescript": "^5.7.2",
     "typescript-eslint": "^8.18.1",
-    "vite": "^5.4.11",
+    "vite": "^8.0.10",
     "vitest": "^2.1.8"
   }
 }
