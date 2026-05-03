@@ -19,9 +19,14 @@ export interface Config {
    *   - 'light' / 'dark': 강제 override
    */
   theme: ThemeSetting;
+  /**
+   * PRD-006 FR-01: PNG export 배율. 정수 1-4. default 2 (PRD-001 호환).
+   */
+  pngScale: PngScale;
 }
 
 export type ThemeSetting = 'auto' | 'light' | 'dark';
+export type PngScale = 1 | 2 | 3 | 4;
 
 export type MenuCommand =
   | 'close-tab'

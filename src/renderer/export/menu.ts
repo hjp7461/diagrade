@@ -1,6 +1,7 @@
 import { serializeSvg } from './serializeSvg';
 import { svgToPngDataUrl } from './svgToPngDataUrl';
 import { suggestedDiagramFileName } from './suggestedFilename';
+import type { PngScale } from '../../shared/types';
 
 /**
  * Mermaid 차트 옆에 ⬇ PNG / ⬇ SVG export 메뉴를 주입. FR-21~31.
@@ -20,28 +21,31 @@ const CHART_CLASS = 'diagrade-mermaid';
 
 interface InjectOptions {
   activeTabPath: string | null;
+  /** PRD-006: PNG export 배율 (1-4). default 2. */
+  pngScale: PngScale;
 }
 
 export function injectExportMenus(container: HTMLElement, options: InjectOptions): void {
   const charts = Array.from(container.querySelectorAll<HTMLElement>(`.${CHART_CLASS}`));
   charts.forEach((chart, idx) => {
     if (chart.querySelector(`.${MENU_CLASS}`)) return;
-    chart.appendChild(buildMenu(chart, idx + 1, options.activeTabPath));
+    chart.appendChild(buildMenu(chart, idx + 1, options.activeTabPath, options.pngScale));
   });
 }
 
 function buildMenu(
   chart: HTMLElement,
   oneBasedIndex: number,
-  activeTabPath: string | null
+  activeTabPath: string | null,
+  pngScale: PngScale
 ): HTMLElement {
   const menu = document.createElement('div');
   menu.className = MENU_CLASS;
   menu.appendChild(
-    makeButton('⬇ PNG', () => exportChart(chart, oneBasedIndex, activeTabPath, 'png'))
+    makeButton('⬇ PNG', () => exportChart(chart, oneBasedIndex, activeTabPath, 'png', pngScale))
   );
   menu.appendChild(
-    makeButton('⬇ SVG', () => exportChart(chart, oneBasedIndex, activeTabPath, 'svg'))
+    makeButton('⬇ SVG', () => exportChart(chart, oneBasedIndex, activeTabPath, 'svg', pngScale))
   );
   return menu;
 }
@@ -73,7 +77,8 @@ async function exportChart(
   chart: HTMLElement,
   oneBasedIndex: number,
   activeTabPath: string | null,
-  ext: 'svg' | 'png'
+  ext: 'svg' | 'png',
+  pngScale: PngScale
 ): Promise<void> {
   const svg = chart.querySelector('svg');
   if (!svg) {
@@ -94,7 +99,8 @@ async function exportChart(
     const xml = serializeSvg(svg as unknown as SVGSVGElement);
     await window.diagrade.fs.writeText(targetPath, xml);
   } else {
-    const dataUrl = await svgToPngDataUrl(svg as unknown as SVGSVGElement, 2);
+    // PRD-006 FR-03: pngScale 사용 (default 2 — PRD-001 호환).
+    const dataUrl = await svgToPngDataUrl(svg as unknown as SVGSVGElement, pngScale);
     const base64 = dataUrl.split(',')[1] ?? '';
     await window.diagrade.fs.writeBinary(targetPath, base64);
   }

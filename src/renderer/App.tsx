@@ -6,24 +6,27 @@ import { useNotifications, NotificationStack } from './notifications';
 import { MarkdownView } from './markdown/MarkdownView';
 import { dirnameOfPath } from './path';
 import type { Tab } from './tabs/state';
-import type { ThemeSetting } from '../shared/types';
+import type { ThemeSetting, PngScale } from '../shared/types';
 import { useTheme } from './theme/useTheme';
 
 const DEFAULT_MAX_TABS = 20;
 const DEFAULT_THEME: ThemeSetting = 'auto';
+const DEFAULT_PNG_SCALE: PngScale = 2;
 
 export function App() {
   const [maxTabs, setMaxTabs] = useState(DEFAULT_MAX_TABS);
   const [themeSetting, setThemeSetting] = useState<ThemeSetting>(DEFAULT_THEME);
+  const [pngScale, setPngScale] = useState<PngScale>(DEFAULT_PNG_SCALE);
   const effectiveTheme = useTheme(themeSetting);
   const tabs = useTabs(maxTabs);
   const notifications = useNotifications();
 
-  // FR-38/41 + PRD-004 FR-01: config 로드. 실패해도 기본값으로 동작.
+  // FR-38/41 + PRD-004 FR-01 + PRD-006 FR-01: config 로드. 실패해도 기본값으로 동작.
   useEffect(() => {
     void window.diagrade.config.get().then((cfg) => {
       setMaxTabs(cfg.maxTabs);
       setThemeSetting(cfg.theme);
+      setPngScale(cfg.pngScale);
     });
   }, []);
 
@@ -145,6 +148,7 @@ export function App() {
             key={activeTab.id}
             tab={activeTab}
             theme={effectiveTheme}
+            pngScale={pngScale}
             onNotify={notifications.push}
           />
         ) : (

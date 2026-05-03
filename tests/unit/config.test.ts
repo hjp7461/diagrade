@@ -90,10 +90,45 @@ describe('validateConfig (FR-40 robustness)', () => {
   });
 
   it('maxTabs + liveReload + theme 동시 변경', () => {
-    expect(validateConfig({ maxTabs: 10, liveReload: false, theme: 'dark' })).toEqual({
-      maxTabs: 10,
+    expect(validateConfig({ maxTabs: 10, liveReload: false, theme: 'dark' })).toEqual(
+      expect.objectContaining({ maxTabs: 10, liveReload: false, theme: 'dark' })
+    );
+  });
+
+  // PRD-006 FR-01/02
+  it('pngScale 기본값은 2', () => {
+    expect(validateConfig({}).pngScale).toBe(2);
+    expect(validateConfig(null).pngScale).toBe(2);
+  });
+
+  it('pngScale 1/2/3/4 그대로 적용', () => {
+    expect(validateConfig({ pngScale: 1 }).pngScale).toBe(1);
+    expect(validateConfig({ pngScale: 2 }).pngScale).toBe(2);
+    expect(validateConfig({ pngScale: 3 }).pngScale).toBe(3);
+    expect(validateConfig({ pngScale: 4 }).pngScale).toBe(4);
+  });
+
+  it('pngScale 범위 외 (0, 5, -1, 1.5) 는 default 2 로 폴백', () => {
+    expect(validateConfig({ pngScale: 0 }).pngScale).toBe(2);
+    expect(validateConfig({ pngScale: 5 }).pngScale).toBe(2);
+    expect(validateConfig({ pngScale: -1 }).pngScale).toBe(2);
+    expect(validateConfig({ pngScale: 1.5 }).pngScale).toBe(2);
+  });
+
+  it('pngScale 잘못된 타입 (문자열, null, boolean) 는 default 2 로 폴백', () => {
+    expect(validateConfig({ pngScale: '2' }).pngScale).toBe(2);
+    expect(validateConfig({ pngScale: null }).pngScale).toBe(2);
+    expect(validateConfig({ pngScale: true }).pngScale).toBe(2);
+  });
+
+  it('모든 필드 동시 변경', () => {
+    expect(
+      validateConfig({ maxTabs: 5, liveReload: false, theme: 'dark', pngScale: 3 })
+    ).toEqual({
+      maxTabs: 5,
       liveReload: false,
-      theme: 'dark'
+      theme: 'dark',
+      pngScale: 3
     });
   });
 });

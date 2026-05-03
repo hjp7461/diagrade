@@ -15,11 +15,14 @@ import {
 } from '../search';
 import { SearchBar } from '../search/SearchBar';
 import type { EffectiveTheme } from '../theme/computeEffectiveTheme';
+import type { PngScale } from '../../shared/types';
 
 interface MarkdownViewProps {
   tab: Tab;
   /** PRD-004: 활성 테마. 변경 시 mermaid 가 재렌더되도록 article key 에 포함. */
   theme: EffectiveTheme;
+  /** PRD-006: ⬇ PNG export 배율. 변경 시 새 메뉴 생성. */
+  pngScale: PngScale;
   onNotify: (message: string) => void;
 }
 
@@ -44,7 +47,7 @@ interface SearchState {
  *   7) PRD-002: app:file-missing 수신 → 토스트
  *   8) PRD-003: 검색 — 검색바 + 매칭 하이라이트 + 페이지 단위 active 결정
  */
-export function MarkdownView({ tab, theme, onNotify }: MarkdownViewProps) {
+export function MarkdownView({ tab, theme, pngScale, onNotify }: MarkdownViewProps) {
   const [html, setHtml] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -216,7 +219,7 @@ export function MarkdownView({ tab, theme, onNotify }: MarkdownViewProps) {
       if (cancelled) return;
       await applyHighlight(container);
       if (cancelled) return;
-      injectExportMenus(container, { activeTabPath: tab.filePath });
+      injectExportMenus(container, { activeTabPath: tab.filePath, pngScale });
 
       // PRD-002 FR-04: scrollTop 복원.
       if (pendingScrollTopRef.current !== null) {
@@ -239,7 +242,7 @@ export function MarkdownView({ tab, theme, onNotify }: MarkdownViewProps) {
     return () => {
       cancelled = true;
     };
-  }, [html, tab.filePath, theme, runSearch]);
+  }, [html, tab.filePath, theme, pngScale, runSearch]);
 
   // ────────────────────────────────────────────────────────────────
   // 메뉴 명령 수신 — close-tab/next-tab/prev-tab 은 App, 본문 관련은 여기서.

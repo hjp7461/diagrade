@@ -15,10 +15,12 @@ export type { Config };
 export const DEFAULT_CONFIG: Config = {
   maxTabs: 20,
   liveReload: true,
-  theme: 'auto'
+  theme: 'auto',
+  pngScale: 2
 };
 
 const VALID_THEMES = new Set<string>(['auto', 'light', 'dark']);
+const VALID_PNG_SCALES = new Set<number>([1, 2, 3, 4]);
 
 const MIN_MAX_TABS = 1;
 
@@ -51,6 +53,16 @@ export function validateConfig(raw: unknown): Config {
   // PRD-004 FR-06: theme 이 'auto'/'light'/'dark' 중 하나일 때만 적용. 그 외는 default 'auto'.
   if (typeof r['theme'] === 'string' && VALID_THEMES.has(r['theme'])) {
     cfg.theme = r['theme'] as Config['theme'];
+  }
+
+  // PRD-006 FR-02: pngScale 이 정수 1/2/3/4 일 때만 적용. 그 외는 default 2.
+  const pngCandidate = r['pngScale'];
+  if (
+    typeof pngCandidate === 'number' &&
+    Number.isInteger(pngCandidate) &&
+    VALID_PNG_SCALES.has(pngCandidate)
+  ) {
+    cfg.pngScale = pngCandidate as Config['pngScale'];
   }
 
   return cfg;
