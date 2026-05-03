@@ -44,6 +44,13 @@ function buildTemplate(): MenuItemConstructorOptions[] {
     submenu: [
       { role: 'about' },
       { type: 'separator' },
+      // PRD-010 FR-01/02: macOS HIG — 설정은 앱 메뉴 안. Cmd+, 표준.
+      {
+        label: '설정...',
+        accelerator: 'CmdOrCtrl+,',
+        click: () => sendMenuCommand('open-settings')
+      },
+      { type: 'separator' },
       { role: 'services' },
       { type: 'separator' },
       { role: 'hide' },
@@ -83,6 +90,10 @@ function buildTemplate(): MenuItemConstructorOptions[] {
         click: () => sendMenuCommand('save-all-diagrams')
       },
       {
+        label: '다이어그램 저장 (PNG 일괄)',
+        click: () => sendMenuCommand('save-all-diagrams-png')
+      },
+      {
         label: 'PDF 로 내보내기...',
         accelerator: 'CmdOrCtrl+P',
         click: () => sendMenuCommand('export-pdf')
@@ -93,6 +104,17 @@ function buildTemplate(): MenuItemConstructorOptions[] {
         accelerator: 'CmdOrCtrl+W',
         click: () => sendMenuCommand('close-tab')
       },
+      // PRD-010 FR-01: macOS 가 아니면 파일 메뉴 끝에 설정 항목 (Cmd+, 단축키는 macAppMenu 와 중복 X — isMac 분기).
+      ...(isMac
+        ? []
+        : ([
+            { type: 'separator' },
+            {
+              label: '설정...',
+              accelerator: 'CmdOrCtrl+,',
+              click: () => sendMenuCommand('open-settings')
+            }
+          ] as MenuItemConstructorOptions[])),
       { type: 'separator' },
       isMac ? { role: 'close' } : { role: 'quit' }
     ]

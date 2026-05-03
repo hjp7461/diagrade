@@ -93,4 +93,70 @@
   .diagrade-search-bar {
     display: none;
   }
+  .diagrade-search-other-tabs {
+    display: none;
+  }
+}
+
+/* PRD-009 FR-10/11: 다른 탭 결과 패널. 검색바 바로 아래. */
+.diagrade-search-other-tabs {
+  position: fixed;
+  top: 56px; /* 검색바 (top: 16px + h ~32px) 아래 */
+  right: 24px;
+  z-index: 100;
+  min-width: 220px;
+  max-width: 360px;
+  max-height: 280px;
+  overflow-y: auto;
+  background: var(--diagrade-search-bar-bg);
+  color: var(--diagrade-chrome-fg);
+  border: 1px solid var(--diagrade-search-bar-border);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px var(--diagrade-shadow);
+  font-family: inherit;
+  font-size: 12px;
+}
+
+.diagrade-search-other-tabs__header {
+  padding: 6px 10px 4px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--diagrade-search-btn-fg);
+  opacity: 0.7;
+}
+
+.diagrade-search-other-tabs__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 6px 10px;
+  background: transparent;
+  color: var(--diagrade-chrome-fg);
+  border: none;
+  border-top: 1px solid var(--diagrade-search-bar-border);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  text-align: left;
+}
+
+.diagrade-search-other-tabs__item:hover {
+  background: var(--diagrade-search-btn-hover-bg);
+}
+
+.diagrade-search-other-tabs__name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-right: 8px;
+}
+
+.diagrade-search-other-tabs__count {
+  min-width: 24px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
 }

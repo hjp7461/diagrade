@@ -4,6 +4,7 @@ import { App } from './App';
 import './theme/theme.css';
 import './export/menu.css';
 import './search/searchBar.css';
+import './settings/settings.css';
 
 const rootEl = document.getElementById('root');
 if (!rootEl) throw new Error('#root not found in index.html');

@@ -1,32 +1,56 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { TabBar } from './tabs/TabBar';
 import { useTabs } from './tabs/useTabs';
 import { resolveDrop } from './dnd';
 import { useNotifications, NotificationStack } from './notifications';
-import { MarkdownView } from './markdown/MarkdownView';
+import {
+  MarkdownView,
+  initialSearchSession,
+  type SearchSession
+} from './markdown/MarkdownView';
 import { dirnameOfPath } from './path';
 import type { Tab } from './tabs/state';
 import type { ThemeSetting, PngScale } from '../shared/types';
 import { useTheme } from './theme/useTheme';
+import { searchOtherTabs, type OtherTabResult } from './search/searchOtherTabs';
+import { OtherTabsPanel } from './search/OtherTabsPanel';
+import { SettingsDialog } from './settings/SettingsDialog';
+import type { Config } from '../shared/types';
 
 const DEFAULT_MAX_TABS = 20;
 const DEFAULT_THEME: ThemeSetting = 'auto';
 const DEFAULT_PNG_SCALE: PngScale = 2;
+const DEFAULT_LIVE_RELOAD = true;
 
 export function App() {
   const [maxTabs, setMaxTabs] = useState(DEFAULT_MAX_TABS);
   const [themeSetting, setThemeSetting] = useState<ThemeSetting>(DEFAULT_THEME);
   const [pngScale, setPngScale] = useState<PngScale>(DEFAULT_PNG_SCALE);
+  const [liveReload, setLiveReload] = useState<boolean>(DEFAULT_LIVE_RELOAD);
   const effectiveTheme = useTheme(themeSetting);
   const tabs = useTabs(maxTabs);
   const notifications = useNotifications();
 
-  // FR-38/41 + PRD-004 FR-01 + PRD-006 FR-01: config 로드. 실패해도 기본값으로 동작.
+  // PRD-009: 검색 세션. App 으로 lift — 탭 전환 시 query 보존.
+  const [search, setSearch] = useState<SearchSession>(initialSearchSession);
+  const updateSearch = useCallback((partial: Partial<SearchSession>) => {
+    setSearch((prev) => ({ ...prev, ...partial }));
+  }, []);
+
+  // PRD-009 §6.4: 비활성 탭 cache. tabId → raw text. file-changed/검색 닫기 시 무효화.
+  const otherTabsCacheRef = useRef<Map<string, string>>(new Map());
+  const [otherResults, setOtherResults] = useState<OtherTabResult[]>([]);
+
+  // PRD-010: 설정 모달 toggle. 모달은 단일 mount 라 portal 불필요.
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  // FR-38/41 + PRD-004 FR-01 + PRD-006 FR-01 + PRD-010: config 로드. 실패해도 기본값으로 동작.
   useEffect(() => {
     void window.diagrade.config.get().then((cfg) => {
       setMaxTabs(cfg.maxTabs);
       setThemeSetting(cfg.theme);
       setPngScale(cfg.pngScale);
+      setLiveReload(cfg.liveReload);
     });
   }, []);
 
@@ -55,6 +79,18 @@ export function App() {
           break;
         case 'prev-tab':
           tabs.switchTo('prev');
+          break;
+        case 'open-search':
+          // PRD-009 FR-03: 검색 세션은 App 소유 — 탭에 무관하게 한 번에 처리.
+          setSearch((prev) => ({
+            ...prev,
+            open: true,
+            focusTrigger: prev.focusTrigger + 1
+          }));
+          break;
+        case 'open-settings':
+          // PRD-010 FR-07: 토글 — 같은 메뉴 재실행 시 닫힘.
+          setSettingsOpen((v) => !v);
           break;
       }
     });
@@ -98,6 +134,100 @@ export function App() {
 
     prevTabsRef.current = current;
   }, [tabs.state.tabs, tabs.state.activeTabId]);
+
+  // PRD-009 §6.4/§6.5: 비활성 탭 cache 무효화 — file-changed 시 + 검색 닫기 시 모두.
+  useEffect(() => {
+    if (!search.open) {
+      otherTabsCacheRef.current.clear();
+      setOtherResults([]);
+    }
+  }, [search.open]);
+
+  useEffect(() => {
+    return window.diagrade.events.onFileChanged(() => {
+      // 어떤 파일이 변했는지 모르므로 보수적으로 전체 클리어. 다음 검색에서 재 fetch.
+      otherTabsCacheRef.current.clear();
+    });
+  }, []);
+
+  // PRD-009 FR-04~FR-09: 비활성 탭 raw text 검색.
+  useEffect(() => {
+    if (!search.open || search.query.length === 0) {
+      setOtherResults([]);
+      return;
+    }
+    const inactive = tabs.state.tabs.filter((t) => t.id !== tabs.state.activeTabId);
+    const cache = otherTabsCacheRef.current;
+    const fetcher = async (path: string): Promise<string> => {
+      const cached = cache.get(path);
+      if (cached !== undefined) return cached;
+      const { content } = await window.diagrade.fs.readText(path);
+      cache.set(path, content);
+      return content;
+    };
+    let cancelled = false;
+    void searchOtherTabs(
+      inactive.map((t) => ({ id: t.id, filePath: t.filePath, fileName: t.fileName })),
+      search.query,
+      {
+        caseSensitive: search.caseSensitive,
+        wholeWord: search.wholeWord,
+        regex: search.regex
+      },
+      fetcher
+    ).then((results) => {
+      if (cancelled) return;
+      setOtherResults(results);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    search.open,
+    search.query,
+    search.caseSensitive,
+    search.wholeWord,
+    search.regex,
+    tabs.state.tabs,
+    tabs.state.activeTabId
+  ]);
+
+  const handleJumpToTab = useCallback(
+    (tabId: string) => {
+      tabs.setActiveById(tabId);
+      // 새 활성 탭의 MarkdownView 가 mount 되면 post-render effect 가 search.query 로 자동 재검색.
+    },
+    [tabs]
+  );
+
+  // PRD-010 FR-13/14: 설정 변경 → ConfigStore.set → 응답값으로 React state sync.
+  // ConfigStore 가 validateConfig 을 거치므로 잘못된 값은 마지막 유효값으로 reject 됨.
+  const handleSettingsChange = useCallback(
+    (partial: Partial<Config>) => {
+      void window.diagrade.config
+        .set(partial)
+        .then((cfg) => {
+          setMaxTabs(cfg.maxTabs);
+          setThemeSetting(cfg.theme);
+          setPngScale(cfg.pngScale);
+          setLiveReload(cfg.liveReload);
+          // liveReload 는 main 의 watcher 가 다음 watch:set-active-path 호출 시 즉시 반영.
+        })
+        .catch((e: unknown) => {
+          notifications.push(
+            `설정 저장 실패: ${e instanceof Error ? e.message : String(e)}`
+          );
+        });
+    },
+    [notifications]
+  );
+
+  const currentConfig: Config = {
+    maxTabs,
+    liveReload,
+    theme: themeSetting,
+    pngScale
+  };
 
   // FR-10/11/12/13: 드래그앤드롭.
   useEffect(() => {
@@ -149,12 +279,24 @@ export function App() {
             tab={activeTab}
             theme={effectiveTheme}
             pngScale={pngScale}
+            search={search}
+            onSearchChange={updateSearch}
             onNotify={notifications.push}
           />
         ) : (
           <EmptyState />
         )}
       </main>
+      {search.open && (
+        <OtherTabsPanel results={otherResults} onJump={handleJumpToTab} />
+      )}
+      {settingsOpen && (
+        <SettingsDialog
+          config={currentConfig}
+          onChange={handleSettingsChange}
+          onClose={() => setSettingsOpen(false)}
+        />
+      )}
       <NotificationStack items={notifications.items} onDismiss={notifications.dismiss} />
     </div>
   );

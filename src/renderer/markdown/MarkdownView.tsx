@@ -5,6 +5,7 @@ import { applyHighlight } from './highlight';
 import { renderMermaidBlocks } from '../mermaid/render';
 import { injectExportMenus } from '../export/menu';
 import { saveAllDiagrams } from '../export/saveAllDiagrams';
+import { svgToPngDataUrl } from '../export/svgToPngDataUrl';
 import { suggestedPdfFileName } from '../export/suggestedFilename';
 import { basenameOfPath } from '../path';
 import {
@@ -17,24 +18,40 @@ import { SearchBar } from '../search/SearchBar';
 import type { EffectiveTheme } from '../theme/computeEffectiveTheme';
 import type { PngScale } from '../../shared/types';
 
+/** PRD-009: App 으로 lift 된 검색 세션. 탭 전환 시 보존. */
+export interface SearchSession {
+  open: boolean;
+  query: string;
+  caseSensitive: boolean;
+  wholeWord: boolean;
+  regex: boolean;
+  /** focus + select-all 트리거. 'open-search' 가 매번 증가. */
+  focusTrigger: number;
+}
+
+export const initialSearchSession: SearchSession = {
+  open: false,
+  query: '',
+  caseSensitive: false,
+  wholeWord: false,
+  regex: false,
+  focusTrigger: 0
+};
+
 interface MarkdownViewProps {
   tab: Tab;
   /** PRD-004: 활성 테마. 변경 시 mermaid 가 재렌더되도록 article key 에 포함. */
   theme: EffectiveTheme;
   /** PRD-006: ⬇ PNG export 배율. 변경 시 새 메뉴 생성. */
   pngScale: PngScale;
+  /** PRD-009: App 으로 lift 된 검색 세션. */
+  search: SearchSession;
+  /** PRD-009: 부분 변경 dispatch — App 의 setSearch 와 호환. */
+  onSearchChange: (partial: Partial<SearchSession>) => void;
   onNotify: (message: string) => void;
 }
 
 const SEARCH_DEBOUNCE_MS = 150;
-
-interface SearchState {
-  open: boolean;
-  query: string;
-  caseSensitive: boolean;
-  wholeWord: boolean;
-  regex: boolean;
-}
 
 /**
  * 활성 탭의 마크다운 본문 + 검색 (PRD-003).
@@ -49,37 +66,44 @@ interface SearchState {
  *   7) PRD-002: app:file-missing 수신 → 토스트
  *   8) PRD-003: 검색 — 검색바 + 매칭 하이라이트 + 페이지 단위 active 결정
  */
-export function MarkdownView({ tab, theme, pngScale, onNotify }: MarkdownViewProps) {
+export function MarkdownView({
+  tab,
+  theme,
+  pngScale,
+  search,
+  onSearchChange,
+  onNotify
+}: MarkdownViewProps) {
   const [html, setHtml] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const pendingScrollTopRef = useRef<number | null>(null);
 
-  // 검색 state
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchCaseSensitive, setSearchCaseSensitive] = useState(false);
-  const [searchWholeWord, setSearchWholeWord] = useState(false);
-  const [searchRegex, setSearchRegex] = useState(false);
+  // 검색 매칭 결과는 DOM 의존이라 자체 state 로 유지 (App 으로 올릴 가치 없음).
   const [matchCount, setMatchCount] = useState(0);
   const [activeIndex, setActiveIndex] = useState(-1);
-  const [focusTrigger, setFocusTrigger] = useState(0);
 
-  // 비-effect 코드에서 최신 검색 state 를 참조하기 위한 ref (post-render effect 의 의존성 회피).
-  const searchStateRef = useRef<SearchState>({
-    open: false,
-    query: '',
-    caseSensitive: false,
-    wholeWord: false,
-    regex: false
-  });
-  searchStateRef.current = {
-    open: searchOpen,
-    query: searchQuery,
-    caseSensitive: searchCaseSensitive,
-    wholeWord: searchWholeWord,
-    regex: searchRegex
-  };
+  // 개별 setter alias — props 로 받은 onSearchChange 위에 얇은 래퍼.
+  const setSearchQuery = useCallback(
+    (q: string) => onSearchChange({ query: q }),
+    [onSearchChange]
+  );
+  const setSearchCaseSensitive = useCallback(
+    (v: boolean) => onSearchChange({ caseSensitive: v }),
+    [onSearchChange]
+  );
+  const setSearchWholeWord = useCallback(
+    (v: boolean) => onSearchChange({ wholeWord: v }),
+    [onSearchChange]
+  );
+  const setSearchRegex = useCallback(
+    (v: boolean) => onSearchChange({ regex: v }),
+    [onSearchChange]
+  );
+
+  // 효과 안에서 최신 검색 state 참조 — props 변경에 반응하도록 ref sync.
+  const searchStateRef = useRef(search);
+  searchStateRef.current = search;
 
   // 매칭 element 배열 — 클래스 토글 / 스크롤에 사용. state 가 아닌 ref (re-render 안 트리거).
   const matchElementsRef = useRef<HTMLElement[]>([]);
@@ -186,26 +210,29 @@ export function MarkdownView({ tab, theme, pngScale, onNotify }: MarkdownViewPro
         runSearch(q, s.caseSensitive, s.wholeWord, s.regex, false);
       }, SEARCH_DEBOUNCE_MS);
     },
-    [runSearch]
+    [runSearch, setSearchQuery]
   );
 
   const handleCaseToggle = useCallback((): void => {
-    const next = !searchCaseSensitive;
+    const s = searchStateRef.current;
+    const next = !s.caseSensitive;
     setSearchCaseSensitive(next);
-    runSearch(searchQuery, next, searchWholeWord, searchRegex, false);
-  }, [runSearch, searchCaseSensitive, searchQuery, searchWholeWord, searchRegex]);
+    runSearch(s.query, next, s.wholeWord, s.regex, false);
+  }, [runSearch, setSearchCaseSensitive]);
 
   const handleWholeWordToggle = useCallback((): void => {
-    const next = !searchWholeWord;
+    const s = searchStateRef.current;
+    const next = !s.wholeWord;
     setSearchWholeWord(next);
-    runSearch(searchQuery, searchCaseSensitive, next, searchRegex, false);
-  }, [runSearch, searchCaseSensitive, searchQuery, searchWholeWord, searchRegex]);
+    runSearch(s.query, s.caseSensitive, next, s.regex, false);
+  }, [runSearch, setSearchWholeWord]);
 
   const handleRegexToggle = useCallback((): void => {
-    const next = !searchRegex;
+    const s = searchStateRef.current;
+    const next = !s.regex;
     setSearchRegex(next);
-    runSearch(searchQuery, searchCaseSensitive, searchWholeWord, next, false);
-  }, [runSearch, searchCaseSensitive, searchQuery, searchWholeWord, searchRegex]);
+    runSearch(s.query, s.caseSensitive, s.wholeWord, next, false);
+  }, [runSearch, setSearchRegex]);
 
   const navigate = useCallback(
     (delta: 1 | -1): void => {
@@ -231,15 +258,17 @@ export function MarkdownView({ tab, theme, pngScale, onNotify }: MarkdownViewPro
     const container = containerRef.current;
     if (container) clearHighlights(container);
     matchElementsRef.current = [];
-    setSearchOpen(false);
-    setSearchQuery('');
-    // PRD-007 FR-03: 닫을 때 토글 모두 reset.
-    setSearchCaseSensitive(false);
-    setSearchWholeWord(false);
-    setSearchRegex(false);
+    // PRD-007 FR-03: 닫을 때 토글 모두 reset. PRD-009: App 의 단일 dispatch 로 묶음.
+    onSearchChange({
+      open: false,
+      query: '',
+      caseSensitive: false,
+      wholeWord: false,
+      regex: false
+    });
     setMatchCount(0);
     setActiveIndex(-1);
-  }, []);
+  }, [onSearchChange]);
 
   // ────────────────────────────────────────────────────────────────
   // mermaid / Shiki / export 메뉴 / 검색 재실행 (post-render)
@@ -285,13 +314,20 @@ export function MarkdownView({ tab, theme, pngScale, onNotify }: MarkdownViewPro
 
   useEffect(() => {
     return window.diagrade.events.onMenuCommand(async (command) => {
-      if (command === 'save-all-diagrams') {
+      if (command === 'save-all-diagrams' || command === 'save-all-diagrams-png') {
         const container = containerRef.current;
         if (!container) return;
-        const result = await saveAllDiagrams(container, tab.filePath, {
-          saveFile: window.diagrade.dialog.saveFile,
-          writeText: window.diagrade.fs.writeText
-        });
+        const format = command === 'save-all-diagrams-png' ? 'png' : 'svg';
+        const result = await saveAllDiagrams(
+          container,
+          tab.filePath,
+          {
+            saveFile: window.diagrade.dialog.saveFile,
+            writeText: window.diagrade.fs.writeText,
+            writeBinary: window.diagrade.fs.writeBinary
+          },
+          { format, pngScale, svgToPng: svgToPngDataUrl }
+        );
         if (result.noCharts) {
           onNotify('이 문서에는 다이어그램이 없습니다.');
         } else if (result.cancelledAt !== null) {
@@ -306,13 +342,10 @@ export function MarkdownView({ tab, theme, pngScale, onNotify }: MarkdownViewPro
         } catch (e) {
           onNotify(`PDF 저장 실패: ${e instanceof Error ? e.message : String(e)}`);
         }
-      } else if (command === 'open-search') {
-        // PRD-003 FR-01/02: 검색바 표시 (이미 열려있어도 focus + select-all 트리거).
-        setSearchOpen(true);
-        setFocusTrigger((t) => t + 1);
       }
+      // 'open-search' 는 App 이 직접 처리 — 모든 탭에서 같은 검색 세션 공유.
     });
-  }, [tab.filePath, onNotify]);
+  }, [tab.filePath, onNotify, pngScale]);
 
   // ────────────────────────────────────────────────────────────────
   // PRD-002: 파일 변경 / 삭제 이벤트 수신.
@@ -361,15 +394,15 @@ export function MarkdownView({ tab, theme, pngScale, onNotify }: MarkdownViewPro
         dangerouslySetInnerHTML={{ __html: html }}
         style={contentStyle}
       />
-      {searchOpen && (
+      {search.open && (
         <SearchBar
-          query={searchQuery}
-          caseSensitive={searchCaseSensitive}
-          wholeWord={searchWholeWord}
-          regex={searchRegex}
+          query={search.query}
+          caseSensitive={search.caseSensitive}
+          wholeWord={search.wholeWord}
+          regex={search.regex}
           currentIndex={activeIndex}
           totalMatches={matchCount}
-          focusTrigger={focusTrigger}
+          focusTrigger={search.focusTrigger}
           onQueryChange={handleQueryChange}
           onCaseToggle={handleCaseToggle}
           onWholeWordToggle={handleWholeWordToggle}

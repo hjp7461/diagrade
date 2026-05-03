@@ -140,3 +140,203 @@ describe('saveAllDiagrams (FR-32~35)', () => {
     expect(seen).toEqual(['note-1.svg', 'note-2.svg']);
   });
 });
+
+describe('saveAllDiagrams (PRD-008: PNG 분기)', () => {
+  beforeEach(() => {
+    document.body.replaceChildren();
+  });
+
+  function pngDeps() {
+    return {
+      saveFile: vi.fn(),
+      writeText: vi.fn(),
+      writeBinary: vi.fn().mockResolvedValue(undefined)
+    };
+  }
+
+  function fakeSvgToPng(scale: number) {
+    // base64 자리표시자 — 실제 디코딩은 안 함, base64 추출 로직만 검증.
+    return vi.fn().mockResolvedValue(`data:image/png;base64,FAKE_S${scale}`);
+  }
+
+  it('format=png — svgToPng 호출, writeBinary 호출, writeText 미호출', async () => {
+    const container = buildContainer(['chart', 'chart']);
+    const deps = pngDeps();
+    deps.saveFile.mockImplementation(async (name: string) => `/tmp/${name}`);
+    const svgToPng = fakeSvgToPng(2);
+
+    const r = await saveAllDiagrams(container, '/x/note.md', deps, {
+      format: 'png',
+      pngScale: 2,
+      svgToPng
+    });
+
+    expect(r).toEqual({ saved: 2, cancelledAt: null, noCharts: false });
+    expect(svgToPng).toHaveBeenCalledTimes(2);
+    expect(deps.writeBinary).toHaveBeenCalledTimes(2);
+    expect(deps.writeText).not.toHaveBeenCalled();
+    // FR-08: scale 인수 forwarding
+    expect(svgToPng.mock.calls[0]![1]).toBe(2);
+  });
+
+  it('FR-06: PNG 파일명 규칙 {basename}-{N}.png + filter 가 PNG only', async () => {
+    const container = buildContainer(['chart', 'chart']);
+    const deps = pngDeps();
+    const seenNames: string[] = [];
+    const seenFilters: unknown[] = [];
+    deps.saveFile.mockImplementation(async (name: string, filters: unknown) => {
+      seenNames.push(name);
+      seenFilters.push(filters);
+      return `/tmp/${name}`;
+    });
+
+    await saveAllDiagrams(container, '/Users/x/notes.md', deps, {
+      format: 'png',
+      pngScale: 2,
+      svgToPng: fakeSvgToPng(2)
+    });
+    expect(seenNames).toEqual(['notes-1.png', 'notes-2.png']);
+    // FR-10: PNG filter 만
+    expect(seenFilters[0]).toEqual([{ name: 'PNG', extensions: ['png'] }]);
+  });
+
+  it('FR-08: pngScale 이 svgToPng 에 forwarding (default 2)', async () => {
+    const container = buildContainer(['chart']);
+    const deps = pngDeps();
+    deps.saveFile.mockImplementation(async (name: string) => `/tmp/${name}`);
+    const svgToPng = fakeSvgToPng(2);
+
+    // pngScale 생략 시 default 2
+    await saveAllDiagrams(container, '/x/n.md', deps, { format: 'png', svgToPng });
+    expect(svgToPng.mock.calls[0]![1]).toBe(2);
+
+    // pngScale=4 명시 시 forwarding
+    const svgToPng4 = fakeSvgToPng(4);
+    await saveAllDiagrams(container, '/x/n.md', deps, {
+      format: 'png',
+      pngScale: 4,
+      svgToPng: svgToPng4
+    });
+    expect(svgToPng4.mock.calls[0]![1]).toBe(4);
+  });
+
+  it('FR-05: PNG 모드 첫 차트 취소 — svgToPng / writeBinary 미호출', async () => {
+    const container = buildContainer(['chart', 'chart']);
+    const deps = pngDeps();
+    deps.saveFile.mockResolvedValue(null); // 취소
+    const svgToPng = fakeSvgToPng(2);
+
+    const r = await saveAllDiagrams(container, '/x/n.md', deps, {
+      format: 'png',
+      pngScale: 2,
+      svgToPng
+    });
+
+    expect(r).toEqual({ saved: 0, cancelledAt: 1, noCharts: false });
+    expect(svgToPng).not.toHaveBeenCalled();
+    expect(deps.writeBinary).not.toHaveBeenCalled();
+  });
+
+  it('PNG base64 추출은 dataURL split(",")[1] — writeBinary 에 base64 전달', async () => {
+    const container = buildContainer(['chart']);
+    const deps = pngDeps();
+    deps.saveFile.mockImplementation(async (name: string) => `/tmp/${name}`);
+    const svgToPng = vi.fn().mockResolvedValue('data:image/png;base64,QUJD');
+
+    await saveAllDiagrams(container, '/x/n.md', deps, {
+      format: 'png',
+      pngScale: 2,
+      svgToPng
+    });
+    expect(deps.writeBinary).toHaveBeenCalledWith('/tmp/n-1.png', 'QUJD');
+  });
+
+  it('error fallback 은 PNG 모드에서도 인덱스 제외', async () => {
+    const container = buildContainer(['chart', 'error', 'chart']);
+    const deps = pngDeps();
+    const seen: string[] = [];
+    deps.saveFile.mockImplementation(async (name: string) => {
+      seen.push(name);
+      return `/tmp/${name}`;
+    });
+
+    await saveAllDiagrams(container, '/x/note.md', deps, {
+      format: 'png',
+      pngScale: 2,
+      svgToPng: fakeSvgToPng(2)
+    });
+    expect(seen).toEqual(['note-1.png', 'note-2.png']);
+  });
+
+  it('FR-07: PNG fallback 파일명 diagram-{N}.png (활성 탭 부재)', async () => {
+    const container = buildContainer(['chart']);
+    const deps = pngDeps();
+    const seen: string[] = [];
+    deps.saveFile.mockImplementation(async (name: string) => {
+      seen.push(name);
+      return null;
+    });
+
+    await saveAllDiagrams(container, null, deps, {
+      format: 'png',
+      pngScale: 2,
+      svgToPng: fakeSvgToPng(2)
+    });
+    expect(seen).toEqual(['diagram-1.png']);
+  });
+
+  it('FR-09: PNG 모드 0 개 차트 — noCharts=true, svgToPng 미호출', async () => {
+    const container = buildContainer(['error']);
+    const deps = pngDeps();
+    const svgToPng = fakeSvgToPng(2);
+
+    const r = await saveAllDiagrams(container, '/x/n.md', deps, {
+      format: 'png',
+      pngScale: 2,
+      svgToPng
+    });
+    expect(r).toEqual({ saved: 0, cancelledAt: null, noCharts: true });
+    expect(deps.saveFile).not.toHaveBeenCalled();
+    expect(svgToPng).not.toHaveBeenCalled();
+  });
+
+  it('PNG 모드인데 deps.writeBinary 누락 시 throw — 프로그래머 오류 가시화', async () => {
+    const container = buildContainer(['chart']);
+    const deps = {
+      saveFile: vi.fn().mockImplementation(async (n: string) => `/tmp/${n}`),
+      writeText: vi.fn()
+      // writeBinary 의도적 누락
+    };
+
+    await expect(
+      saveAllDiagrams(container, '/x/n.md', deps, {
+        format: 'png',
+        pngScale: 2,
+        svgToPng: fakeSvgToPng(2)
+      })
+    ).rejects.toThrow();
+  });
+});
+
+describe('saveAllDiagrams (호환성: 기존 deps 객체 무손상)', () => {
+  beforeEach(() => {
+    document.body.replaceChildren();
+  });
+
+  it('기존 호출 형태 ({saveFile, writeText} 만, options 생략) 가 SVG 모드로 동작', async () => {
+    const root = document.createElement('div');
+    const c = document.createElement('div');
+    c.className = 'diagrade-mermaid';
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg') as SVGSVGElement;
+    svg.setAttribute('viewBox', '0 0 10 10');
+    c.appendChild(svg);
+    root.appendChild(c);
+    document.body.replaceChildren(root);
+
+    const saveFile = vi.fn().mockResolvedValue('/tmp/x-1.svg');
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    const r = await saveAllDiagrams(root, '/x/x.md', { saveFile, writeText });
+    expect(r).toEqual({ saved: 1, cancelledAt: null, noCharts: false });
+    expect(writeText).toHaveBeenCalledTimes(1);
+  });
+});

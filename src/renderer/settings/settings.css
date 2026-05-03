@@ -1,0 +1,142 @@
+/*
+ * 설정 모달 스타일. PRD-010.
+ *
+ * 색상은 모두 theme.css 의 CSS 변수 사용 (다크 모드와 자동 호환).
+ */
+
+.diagrade-settings-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200; /* 검색바 (100) + 다른탭 패널 (100) 보다 위 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(2px);
+}
+
+.diagrade-settings-dialog {
+  display: flex;
+  flex-direction: column;
+  min-width: 420px;
+  max-width: 520px;
+  background: var(--diagrade-search-bar-bg);
+  color: var(--diagrade-chrome-fg);
+  border: 1px solid var(--diagrade-search-bar-border);
+  border-radius: 8px;
+  box-shadow: 0 12px 32px var(--diagrade-shadow);
+  font-family: inherit;
+  font-size: 13px;
+}
+
+.diagrade-settings-dialog__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--diagrade-search-bar-border);
+}
+
+.diagrade-settings-dialog__title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.diagrade-settings-dialog__close {
+  padding: 4px 8px;
+  background: transparent;
+  color: var(--diagrade-search-btn-fg);
+  border: 1px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.diagrade-settings-dialog__close:hover {
+  background: var(--diagrade-search-btn-hover-bg);
+  border-color: var(--diagrade-search-btn-hover-border);
+}
+
+.diagrade-settings-dialog__body {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  padding: 16px;
+}
+
+.diagrade-settings-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 0;
+  margin: 0;
+  border: none;
+}
+
+.diagrade-settings-row__label {
+  font-size: 13px;
+  color: var(--diagrade-chrome-fg);
+}
+
+.diagrade-settings-row__input,
+.diagrade-settings-row__select {
+  padding: 4px 8px;
+  background: var(--diagrade-search-bar-bg);
+  color: var(--diagrade-chrome-fg);
+  border: 1px solid var(--diagrade-search-input-border);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 13px;
+  min-width: 120px;
+}
+
+.diagrade-settings-row__input:focus,
+.diagrade-settings-row__select:focus {
+  outline: none;
+  border-color: var(--diagrade-search-input-focus);
+}
+
+.diagrade-settings-row__checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.diagrade-settings-row__radios {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.diagrade-settings-radio {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.diagrade-settings-radio input[type='radio'] {
+  cursor: pointer;
+}
+
+.diagrade-settings-dialog__footer {
+  padding: 8px 16px 14px;
+  border-top: 1px solid var(--diagrade-search-bar-border);
+}
+
+.diagrade-settings-dialog__hint {
+  font-size: 11px;
+  color: var(--diagrade-search-btn-fg);
+  opacity: 0.7;
+}
+
+@media print {
+  .diagrade-settings-backdrop {
+    display: none;
+  }
+}
