@@ -58,6 +58,11 @@
   --diagrade-mermaid-error-fg-secondary: #742a2a;
   --diagrade-shadow: rgba(0, 0, 0, 0.1);
   --diagrade-toast-shadow: rgba(0, 0, 0, 0.15);
+
+  /* PRD-011: 확대보기 다이얼로그 (light) */
+  --diagrade-overlay-bg: rgba(0, 0, 0, 0.4);
+  --diagrade-elevated-bg: #ffffff;
+  --diagrade-elevated-border: #e5e7eb;
 }
 
 .diagrade-theme-dark {
@@ -108,6 +113,11 @@
   --diagrade-mermaid-error-fg-secondary: #fcb6b6;
   --diagrade-shadow: rgba(0, 0, 0, 0.3);
   --diagrade-toast-shadow: rgba(0, 0, 0, 0.4);
+
+  /* PRD-011: 확대보기 다이얼로그 (dark) */
+  --diagrade-overlay-bg: rgba(0, 0, 0, 0.6);
+  --diagrade-elevated-bg: #1a202c;
+  --diagrade-elevated-border: #4a5568;
 }
 
 /* ─────────────────────────────────────────────────────────────────

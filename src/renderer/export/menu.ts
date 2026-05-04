@@ -23,13 +23,20 @@ interface InjectOptions {
   activeTabPath: string | null;
   /** PRD-006: PNG export 배율 (1-4). default 2. */
   pngScale: PngScale;
+  /**
+   * PRD-011 FR-01/03: ⤢ 확대보기 트리거. 정의 시 메뉴에 ⤢ 항목 추가.
+   * undefined 면 ⤢ 미주입 — 기존 PRD-001 동작 보존(테스트 호환).
+   */
+  onZoomTrigger?: (svg: SVGElement, oneBasedIndex: number) => void;
 }
 
 export function injectExportMenus(container: HTMLElement, options: InjectOptions): void {
   const charts = Array.from(container.querySelectorAll<HTMLElement>(`.${CHART_CLASS}`));
   charts.forEach((chart, idx) => {
     if (chart.querySelector(`.${MENU_CLASS}`)) return;
-    chart.appendChild(buildMenu(chart, idx + 1, options.activeTabPath, options.pngScale));
+    chart.appendChild(
+      buildMenu(chart, idx + 1, options.activeTabPath, options.pngScale, options.onZoomTrigger)
+    );
   });
 }
 
@@ -37,10 +44,20 @@ function buildMenu(
   chart: HTMLElement,
   oneBasedIndex: number,
   activeTabPath: string | null,
-  pngScale: PngScale
+  pngScale: PngScale,
+  onZoomTrigger?: (svg: SVGElement, oneBasedIndex: number) => void
 ): HTMLElement {
   const menu = document.createElement('div');
   menu.className = MENU_CLASS;
+  // PRD-011 FR-01: ⤢ 가 좌측에 — ⬇ 두 개보다 먼저. 사용 빈도가 더 높을 것으로 기대.
+  if (onZoomTrigger) {
+    menu.appendChild(
+      makeSimpleButton('⤢ 확대보기', () => {
+        const svg = chart.querySelector('svg');
+        if (svg) onZoomTrigger(svg as unknown as SVGElement, oneBasedIndex);
+      })
+    );
+  }
   menu.appendChild(
     makeButton('⬇ PNG', () => exportChart(chart, oneBasedIndex, activeTabPath, 'png', pngScale))
   );
@@ -48,6 +65,18 @@ function buildMenu(
     makeButton('⬇ SVG', () => exportChart(chart, oneBasedIndex, activeTabPath, 'svg', pngScale))
   );
   return menu;
+}
+
+function makeSimpleButton(label: string, onClick: () => void): HTMLButtonElement {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = BUTTON_CLASS;
+  btn.textContent = label;
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    onClick();
+  });
+  return btn;
 }
 
 function makeButton(label: string, onClick: () => Promise<void>): HTMLButtonElement {

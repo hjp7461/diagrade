@@ -1,5 +1,5 @@
 /** @vitest-environment jsdom */
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { injectExportMenus, __test__ } from '../../src/renderer/export/menu';
 
 const { MENU_CLASS, BUTTON_CLASS, CHART_CLASS } = __test__;
@@ -74,6 +74,41 @@ describe('injectExportMenus', () => {
     const container = buildContainer([{ kind: 'text' }]);
     expect(() => injectExportMenus(container, { activeTabPath: null, pngScale: 2 })).not.toThrow();
     expect(container.querySelectorAll('.' + MENU_CLASS)).toHaveLength(0);
+  });
+
+  it('PRD-011 FR-01: onZoomTrigger 정의 시 ⤢ 항목 추가, 정상 노드에만', () => {
+    const container = buildContainer([{ kind: 'chart' }, { kind: 'error' }, { kind: 'chart' }]);
+    const onZoom = vi.fn();
+    injectExportMenus(container, { activeTabPath: '/x/note.md', pngScale: 2, onZoomTrigger: onZoom });
+    const charts = container.querySelectorAll('.' + CHART_CLASS);
+    expect(charts).toHaveLength(2);
+    for (const c of charts) {
+      const buttons = c.querySelectorAll<HTMLButtonElement>('.' + BUTTON_CLASS);
+      expect(buttons).toHaveLength(3);
+      expect(buttons[0]!.textContent).toContain('⤢');
+    }
+    // 에러 fallback 에는 메뉴 자체가 없음
+    expect(container.querySelector('.diagrade-mermaid-error .' + BUTTON_CLASS)).toBeNull();
+  });
+
+  it('PRD-011: ⤢ 클릭 → onZoomTrigger(svg, 1-based index)', () => {
+    const container = buildContainer([{ kind: 'chart' }, { kind: 'chart' }]);
+    const onZoom = vi.fn();
+    injectExportMenus(container, { activeTabPath: '/x/note.md', pngScale: 2, onZoomTrigger: onZoom });
+    const secondChart = container.querySelectorAll('.' + CHART_CLASS)[1]!;
+    const zoomBtn = secondChart.querySelector<HTMLButtonElement>('.' + BUTTON_CLASS)!;
+    zoomBtn.click();
+    expect(onZoom).toHaveBeenCalledTimes(1);
+    expect(onZoom.mock.calls[0][1]).toBe(2);
+    expect(onZoom.mock.calls[0][0].tagName.toLowerCase()).toBe('svg');
+  });
+
+  it('PRD-011: onZoomTrigger 미지정 시 ⤢ 미주입 — 회귀 보호 (PNG/SVG 두 개만)', () => {
+    const container = buildContainer([{ kind: 'chart' }]);
+    injectExportMenus(container, { activeTabPath: null, pngScale: 2 });
+    const buttons = container.querySelectorAll<HTMLButtonElement>('.' + BUTTON_CLASS);
+    expect(buttons).toHaveLength(2);
+    expect(buttons[0]!.textContent).not.toContain('⤢');
   });
 
   it('버튼 클릭 시 즉시 disabled + 라벨 ⏳ 생성 중… (FR-30) — saveFile 가 미정의여도 try/finally 로 원복', async () => {
