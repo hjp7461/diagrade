@@ -1,7 +1,5 @@
 # Diagrade
 
-[![CI](https://github.com/hjp7461/diagrade/actions/workflows/ci.yml/badge.svg)](https://github.com/hjp7461/diagrade/actions/workflows/ci.yml)
-
 크로스플랫폼 마크다운 + Mermaid 다이어그램 뷰어. 다이어그램을 깔끔하게(grade) 저장하는 데 특화된 읽기 전용 뷰어.
 
 ## 이름의 유래
