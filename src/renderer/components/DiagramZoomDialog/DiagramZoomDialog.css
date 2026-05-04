@@ -1,11 +1,6 @@
 /*
- * 다이어그램 확대보기 다이얼로그 스타일. PRD-011.
- *
- * 색은 theme.css 의 변수 시스템을 따른다 — 다크 모드 자동 반영.
- * 누락된 토큰(--diagrade-overlay-bg, --diagrade-elevated-bg, --diagrade-elevated-border)
- * 은 theme.css 에서 light/dark 둘 다 정의.
- *
- * @media print 에선 전체 hide — Cmd+P 시 본문만 인쇄 (FR-24).
+ * 토큰 (--diagrade-overlay-bg, --diagrade-elevated-bg, --diagrade-elevated-border) 은
+ * theme.css 의 light/dark 양쪽에서 정의 — 다크 모드 자동 반영.
  */
 
 .diagrade-zoom-dialog {

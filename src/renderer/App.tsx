@@ -48,8 +48,7 @@ export function App() {
   // PRD-010: 설정 모달 toggle. 모달은 단일 mount 라 portal 불필요.
   const [settingsOpen, setSettingsOpen] = useState(false);
 
-  // PRD-011: 다이어그램 확대보기 다이얼로그. args !== null 일 때만 표시 (싱글톤).
-  // 다른 차트의 ⤢ 클릭 시 args 객체를 새로 만들어 교체 — 컴포넌트가 args 동일성으로 init 분기.
+  // 새 args 객체로 교체할 때마다 dialog 가 fit-to-window 로 재초기화 (args 동일성 사용).
   const [zoomArgs, setZoomArgs] = useState<ZoomDialogArgs | null>(null);
 
   // FR-38/41 + PRD-004 FR-01 + PRD-006 FR-01 + PRD-010: config 로드. 실패해도 기본값으로 동작.
@@ -272,7 +271,6 @@ export function App() {
 
   const activeTab = tabs.state.tabs.find((t) => t.id === tabs.state.activeTabId) ?? null;
 
-  // PRD-011 FR-04: ⤢ 클릭 → 새 args 로 다이얼로그 교체. activeTab.filePath 와 pngScale 을 캡처.
   const openZoomDialog = useCallback(
     (svg: SVGElement, oneBasedIndex: number) => {
       setZoomArgs({

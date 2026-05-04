@@ -1,10 +1,19 @@
 /** @vitest-environment jsdom */
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { createRoot, type Root } from 'react-dom/client';
 import { act } from 'react';
 import { ZoomStage } from '../../src/renderer/components/DiagramZoomDialog/ZoomStage';
 
 (globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+
+// rAF 동기 실행 — jsdom 의 setTimeout 기반 rAF 는 act 안에서 안 돌아 transform 검증이 어렵다.
+beforeEach(() => {
+  vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => {
+    cb(0);
+    return 1;
+  });
+  vi.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => {});
+});
 
 let container: HTMLDivElement;
 let root: Root;

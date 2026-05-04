@@ -13,28 +13,26 @@ import {
   type Size
 } from './zoomState';
 import { ZoomStage } from './ZoomStage';
-import { serializeSvg } from '../../export/serializeSvg';
-import { svgToPngDataUrl } from '../../export/svgToPngDataUrl';
-import { suggestedDiagramFileName } from '../../export/suggestedFilename';
+import {
+  exportSingleChart,
+  type ExportSingleDeps
+} from '../../export/exportSingleChart';
 import type { PngScale } from '../../../shared/types';
 
 /**
  * 다이어그램 확대보기 다이얼로그. PRD-011.
  *
- * args !== null 일 때만 표시 (싱글톤). 다른 다이어그램으로 교체 시 부모가 args 객체를
- * 새로 만들어 전달 — 본 컴포넌트는 args 변경을 인덱스로 사용해 상태를 재초기화한다.
- *
- * 닫기: ESC (FR-07) / ✕ 버튼 (FR-06). 백드롭 클릭 / 토글은 미지원 (FR-08).
+ * args !== null 일 때만 마운트 (싱글톤). 다른 다이어그램으로 교체하려면 부모가 args 객체를
+ * 새로 만들어 내려야 한다 — 컴포넌트는 args 동일성으로 fit 재계산 분기.
  */
 
 export interface ZoomDialogArgs {
-  /** 본문에서 발췌한 원본 SVG. ZoomStage 가 cloneNode 사본을 사용 (FR-22). */
+  /** 본문 원본 SVG — ZoomStage 가 cloneNode 사본을 마운트하므로 호출자는 본문 노드 그대로 전달. */
   svgNode: SVGElement;
   /** 본문에서의 정상 렌더 인덱스 (1 부터). 파일명 생성에 사용. */
   index: number;
   /** 활성 탭의 .md 파일 절대 경로. 없으면 null → 'diagram' fallback. */
   activeTabPath: string | null;
-  /** PRD-006 의 pngScale. ⬇ PNG 결과의 픽셀 스케일. */
   pngScale: PngScale;
 }
 
@@ -43,17 +41,11 @@ export interface DiagramZoomDialogProps {
   onClose: () => void;
   /** 내보내기 실패 시 호출. 보통 NotificationStack 으로 연결. */
   onError?: (msg: string) => void;
-  /** 테스트 seam — production 은 dependency 미지정 시 window.diagrade.* 사용. */
-  exportDeps?: ExportDeps;
+  /** 테스트 seam — production 은 미지정 시 window.diagrade.* + 기본 헬퍼 사용. */
+  exportDeps?: ExportSingleDeps;
 }
 
-export interface ExportDeps {
-  saveFile: (defaultName: string, filters: { name: string; extensions: string[] }[]) => Promise<string | null>;
-  writeText: (path: string, content: string) => Promise<void>;
-  writeBinary: (path: string, base64: string) => Promise<void>;
-  serialize?: typeof serializeSvg;
-  svgToPng?: typeof svgToPngDataUrl;
-}
+export type ExportDeps = ExportSingleDeps;
 
 function readViewBox(svg: SVGElement): Size {
   const vb = (svg as SVGSVGElement).viewBox?.baseVal;
@@ -80,7 +72,6 @@ function DialogInner({
   const [level, setLevel] = useState<ZoomLevel>(1);
   const [offset, setOffset] = useState<Offset>({ x: 0, y: 0 });
 
-  // FR-09: body overflow 잠금/복원.
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -89,7 +80,7 @@ function DialogInner({
     };
   }, []);
 
-  // FR-07: ESC capture — 본문/검색바 keydown 보다 먼저 처리.
+  // capture 단계로 등록 — 검색바/본문 keydown 보다 먼저 ESC 를 잡아야 다른 핸들러에 먹히지 않음.
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -102,24 +93,23 @@ function DialogInner({
     return () => window.removeEventListener('keydown', h, true);
   }, [onClose]);
 
-  // viewport 측정. dialog 는 fixed inset:0 이라 stage host 크기 = window 비례 → window resize 만 듣는다.
+  // dialog 가 fixed inset:0 이라 stage host 크기 = window 비례. ResizeObserver 대신 resize 만 듣는다.
   useLayoutEffect(() => {
     const host = stageHostRef.current;
     if (!host) return;
     const measure = (): void => {
       const rect = host.getBoundingClientRect();
-      // jsdom 같이 layout 이 0 인 환경에선 window 크기로 폴백 — 실 production 에서도 안전판.
+      // jsdom 등 layout 이 0 인 환경 폴백 — production 에서도 안전판.
       const w = rect.width > 0 ? rect.width : window.innerWidth;
       const h = rect.height > 0 ? rect.height : window.innerHeight;
-      setViewportSize({ w, h });
+      setViewportSize((prev) => (prev.w === w && prev.h === h ? prev : { w, h }));
     };
     measure();
     window.addEventListener('resize', measure);
     return () => window.removeEventListener('resize', measure);
   }, []);
 
-  // FR-13: args 변경 또는 viewport 첫 측정 시 fit-to-window + 중앙 offset.
-  // viewport.w > 0 가 될 때까지 대기 (초기 0×0 이면 fit 의미 없음).
+  // args 한 번에 한 번만 fit 적용 — 사용자 줌 변경을 resize 가 덮지 않도록 args 동일성으로 가드.
   const initedFor = useRef<{ args: ZoomDialogArgs | null }>({ args: null });
   useEffect(() => {
     if (initedFor.current.args === args) return;
@@ -239,32 +229,25 @@ function DialogInner({
 
 function useExportImpl(
   args: ZoomDialogArgs,
-  deps: ExportDeps | undefined,
+  deps: ExportSingleDeps | undefined,
   onError: ((msg: string) => void) | undefined
 ) {
   return useCallback(
     async (ext: 'svg' | 'png'): Promise<void> => {
-      const saveFile = deps?.saveFile ?? window.diagrade.dialog.saveFile;
-      const writeText = deps?.writeText ?? window.diagrade.fs.writeText;
-      const writeBinary = deps?.writeBinary ?? window.diagrade.fs.writeBinary;
-      const serialize = deps?.serialize ?? serializeSvg;
-      const toPng = deps?.svgToPng ?? svgToPngDataUrl;
-
+      const effective: ExportSingleDeps = deps ?? {
+        saveFile: window.diagrade.dialog.saveFile,
+        writeText: window.diagrade.fs.writeText,
+        writeBinary: window.diagrade.fs.writeBinary
+      };
       try {
-        const svg = args.svgNode as unknown as SVGSVGElement;
-        const defaultName = suggestedDiagramFileName(args.activeTabPath, args.index, ext);
-        const filter =
-          ext === 'svg'
-            ? { name: 'SVG', extensions: ['svg'] }
-            : { name: 'PNG', extensions: ['png'] };
-        const target = await saveFile(defaultName, [filter]);
-        if (!target) return;
-        if (ext === 'svg') {
-          await writeText(target, serialize(svg));
-        } else {
-          const url = await toPng(svg, args.pngScale);
-          await writeBinary(target, url.split(',')[1] ?? '');
-        }
+        await exportSingleChart(
+          args.svgNode as unknown as SVGSVGElement,
+          args.index,
+          args.activeTabPath,
+          ext,
+          args.pngScale,
+          effective
+        );
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         onError?.(`내보내기 실패: ${msg}`);

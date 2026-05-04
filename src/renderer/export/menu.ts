@@ -1,6 +1,4 @@
-import { serializeSvg } from './serializeSvg';
-import { svgToPngDataUrl } from './svgToPngDataUrl';
-import { suggestedDiagramFileName } from './suggestedFilename';
+import { exportSingleChart } from './exportSingleChart';
 import type { PngScale } from '../../shared/types';
 
 /**
@@ -23,10 +21,7 @@ interface InjectOptions {
   activeTabPath: string | null;
   /** PRD-006: PNG export 배율 (1-4). default 2. */
   pngScale: PngScale;
-  /**
-   * PRD-011 FR-01/03: ⤢ 확대보기 트리거. 정의 시 메뉴에 ⤢ 항목 추가.
-   * undefined 면 ⤢ 미주입 — 기존 PRD-001 동작 보존(테스트 호환).
-   */
+  /** 정의 시 메뉴에 ⤢ 항목 추가. 미정의 시 기존 PRD-001 동작 그대로. */
   onZoomTrigger?: (svg: SVGElement, oneBasedIndex: number) => void;
 }
 
@@ -34,35 +29,32 @@ export function injectExportMenus(container: HTMLElement, options: InjectOptions
   const charts = Array.from(container.querySelectorAll<HTMLElement>(`.${CHART_CLASS}`));
   charts.forEach((chart, idx) => {
     if (chart.querySelector(`.${MENU_CLASS}`)) return;
-    chart.appendChild(
-      buildMenu(chart, idx + 1, options.activeTabPath, options.pngScale, options.onZoomTrigger)
-    );
+    chart.appendChild(buildMenu(chart, idx + 1, options));
   });
 }
 
 function buildMenu(
   chart: HTMLElement,
   oneBasedIndex: number,
-  activeTabPath: string | null,
-  pngScale: PngScale,
-  onZoomTrigger?: (svg: SVGElement, oneBasedIndex: number) => void
+  options: InjectOptions
 ): HTMLElement {
   const menu = document.createElement('div');
   menu.className = MENU_CLASS;
-  // PRD-011 FR-01: ⤢ 가 좌측에 — ⬇ 두 개보다 먼저. 사용 빈도가 더 높을 것으로 기대.
-  if (onZoomTrigger) {
+  // ⤢ 가 좌측 — ⬇ 두 개보다 먼저. 사용 빈도가 더 높을 것으로 기대.
+  if (options.onZoomTrigger) {
+    const onZoom = options.onZoomTrigger;
     menu.appendChild(
       makeSimpleButton('⤢ 확대보기', () => {
         const svg = chart.querySelector('svg');
-        if (svg) onZoomTrigger(svg as unknown as SVGElement, oneBasedIndex);
+        if (svg) onZoom(svg as unknown as SVGElement, oneBasedIndex);
       })
     );
   }
   menu.appendChild(
-    makeButton('⬇ PNG', () => exportChart(chart, oneBasedIndex, activeTabPath, 'png', pngScale))
+    makeButton('⬇ PNG', () => exportChart(chart, oneBasedIndex, options, 'png'))
   );
   menu.appendChild(
-    makeButton('⬇ SVG', () => exportChart(chart, oneBasedIndex, activeTabPath, 'svg', pngScale))
+    makeButton('⬇ SVG', () => exportChart(chart, oneBasedIndex, options, 'svg'))
   );
   return menu;
 }
@@ -105,34 +97,26 @@ function makeButton(label: string, onClick: () => Promise<void>): HTMLButtonElem
 async function exportChart(
   chart: HTMLElement,
   oneBasedIndex: number,
-  activeTabPath: string | null,
-  ext: 'svg' | 'png',
-  pngScale: PngScale
+  options: InjectOptions,
+  ext: 'svg' | 'png'
 ): Promise<void> {
   const svg = chart.querySelector('svg');
   if (!svg) {
     console.warn('SVG not found in mermaid chart');
     return;
   }
-
-  const defaultName = suggestedDiagramFileName(activeTabPath, oneBasedIndex, ext);
-  const filter =
-    ext === 'svg'
-      ? { name: 'SVG', extensions: ['svg'] }
-      : { name: 'PNG', extensions: ['png'] };
-
-  const targetPath = await window.diagrade.dialog.saveFile(defaultName, [filter]);
-  if (!targetPath) return;
-
-  if (ext === 'svg') {
-    const xml = serializeSvg(svg as unknown as SVGSVGElement);
-    await window.diagrade.fs.writeText(targetPath, xml);
-  } else {
-    // PRD-006 FR-03: pngScale 사용 (default 2 — PRD-001 호환).
-    const dataUrl = await svgToPngDataUrl(svg as unknown as SVGSVGElement, pngScale);
-    const base64 = dataUrl.split(',')[1] ?? '';
-    await window.diagrade.fs.writeBinary(targetPath, base64);
-  }
+  await exportSingleChart(
+    svg as unknown as SVGSVGElement,
+    oneBasedIndex,
+    options.activeTabPath,
+    ext,
+    options.pngScale,
+    {
+      saveFile: window.diagrade.dialog.saveFile,
+      writeText: window.diagrade.fs.writeText,
+      writeBinary: window.diagrade.fs.writeBinary
+    }
+  );
 }
 
 /** 테스트용 — 메뉴 주입의 멱등성, 인덱스 계산을 검증. */
