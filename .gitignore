@@ -109,3 +109,8 @@ desktop.ini
 .claude/
 CLAUDE.md
 docs/
+
+# 사내 분석 자료 fixture (PUBLIC repo 노출 금지, 2026-05-04 사용자 결정)
+# 회귀 테스트는 디렉토리가 존재하는 로컬에서만 fixture 검증을 수행한다 —
+# tests/unit/analysisFixturesParse.test.ts 는 디렉토리 미존재 시 graceful skip.
+tests/fixtures/regression/_ANALYSIS-snapshot/

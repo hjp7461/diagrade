@@ -45,6 +45,21 @@ afterEach(() => {
 });
 
 describe('ZoomStage (PRD-011 §3.4, §6.3)', () => {
+  it('PRD-012: clone 의 width/height 가 viewBox 자연 크기로 명시 부여 (transform 매핑 정확성)', () => {
+    mount({
+      svgNode: makeSvg('0 0 1500 800'),
+      level: 0.5,
+      offset: { x: 0, y: 0 },
+      contentSize: { w: 750, h: 400 },
+      viewportSize: { w: 800, h: 600 },
+      onOffsetChange: vi.fn()
+    });
+    const mounted = container.querySelector('.diagrade-zoom-stage__svg-host > svg')!;
+    expect(mounted.getAttribute('width')).toBe('1500');
+    expect(mounted.getAttribute('height')).toBe('800');
+    expect(mounted.getAttribute('viewBox')).toBe('0 0 1500 800');
+  });
+
   it('FR-22: svgNode 의 cloneNode 사본이 host 에 mount, 원본은 영향 없음', () => {
     const original = makeSvg();
     const externalParent = document.createElement('div');

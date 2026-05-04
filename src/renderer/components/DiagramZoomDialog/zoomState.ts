@@ -40,49 +40,49 @@ function normalize(level: number): ZoomLevel {
   return best;
 }
 
-export function zoomIn(level: ZoomLevel): ZoomLevel {
-  const idx = ZOOM_STEPS.indexOf(level);
+/** 현재 level 이 ZOOM_STEPS 의 정확한 단계가 아니어도(예: fitToWindow 의 임의 ratio)
+ * normalize 로 가까운 단계를 찾아 한 칸 위/아래로 이동한다. PRD-012 이전엔 fit 도 discrete
+ * 였으므로 항상 indexOf 가 hit 했지만, 이제는 fit 후 ➕/➖ 가 임의 ratio 에서도 자연스럽게
+ * 디스크리트 단계로 진입해야 한다. */
+export function zoomIn(level: number): ZoomLevel {
+  const idx = ZOOM_STEPS.indexOf(level as ZoomLevel);
   if (idx === -1) return normalize(level);
-  if (idx >= ZOOM_STEPS.length - 1) return level;
+  if (idx >= ZOOM_STEPS.length - 1) return ZOOM_STEPS[idx];
   return ZOOM_STEPS[idx + 1];
 }
 
-export function zoomOut(level: ZoomLevel): ZoomLevel {
-  const idx = ZOOM_STEPS.indexOf(level);
+export function zoomOut(level: number): ZoomLevel {
+  const idx = ZOOM_STEPS.indexOf(level as ZoomLevel);
   if (idx === -1) return normalize(level);
-  if (idx <= 0) return level;
+  if (idx <= 0) return ZOOM_STEPS[idx];
   return ZOOM_STEPS[idx - 1];
 }
 
-export function canZoomIn(level: ZoomLevel): boolean {
-  return ZOOM_STEPS.indexOf(level) < ZOOM_STEPS.length - 1;
+export function canZoomIn(level: number): boolean {
+  // 임의 ratio 도 위쪽으로 갈 단계가 있는 한 true.
+  return level < ZOOM_STEPS[ZOOM_STEPS.length - 1];
 }
 
-export function canZoomOut(level: ZoomLevel): boolean {
-  const idx = ZOOM_STEPS.indexOf(level);
-  return idx > 0;
+export function canZoomOut(level: number): boolean {
+  return level > ZOOM_STEPS[0];
 }
 
 /**
- * viewBox 가 viewport 안에 들어가는 가장 큰 디스크리트 단계. 100% 상한 (FR-13).
+ * viewBox 가 viewport 안에 들어가는 fit ratio. 100% 상한 (FR-13). 하한 없음 (PRD-012 FR-03).
  *
- * 작은 다이어그램은 그대로 100% 로 표시 — 디스크리트 단계 위로 확대해 픽셀 깨짐을 만들지 않는다.
- * 매우 큰 다이어그램(ratio < 0.25) 은 25% 로 클램프 — 끝까지 줄였는데도 안 들어가면
- * 가운데부터 사용자가 pan 하도록 한다.
+ * - 작은 다이어그램(ratio ≥ 1)은 100% 로 표시 — 픽셀 깨짐 없음.
+ * - 큰 다이어그램은 ratio 자체를 그대로 반환해 한 번에 viewport 에 들어오게 한다.
+ *   (이전 정책: ZOOM_STEPS 의 디스크리트 단계로 스냅 + 0.25 하한 클램프 →
+ *    매우 큰 시퀀스에서 fit 후에도 콘텐츠가 viewport 보다 커서 좌상단만 보임 — PRD-012 Issue B.)
+ *
+ * 반환 타입은 number — +/- 버튼은 별도로 ZOOM_STEPS 기반으로 동작 (zoomIn/zoomOut).
  */
-export function fitToWindow(viewBox: Size, viewport: Size): ZoomLevel {
+export function fitToWindow(viewBox: Size, viewport: Size): number {
   if (viewBox.w <= 0 || viewBox.h <= 0 || viewport.w <= 0 || viewport.h <= 0) {
     return 1;
   }
   const ratio = Math.min(viewport.w / viewBox.w, viewport.h / viewBox.h);
-  if (ratio >= 1) return 1;
-
-  let best: ZoomLevel = ZOOM_STEPS[0];
-  for (const s of ZOOM_STEPS) {
-    if (s > 1) break; // 100% 상한
-    if (s <= ratio) best = s;
-  }
-  return best;
+  return ratio >= 1 ? 1 : ratio;
 }
 
 /**
@@ -110,15 +110,29 @@ export function clampOffset(
   };
 }
 
-/** 콘텐츠가 viewport 보다 작으면 중앙 정렬 offset 을 반환. 그렇지 않으면 null. FR-20. */
+/** 콘텐츠가 viewport 보다 작으면 중앙 정렬 offset 을 반환. 그렇지 않으면 null. FR-20.
+ *
+ * +/- 줌 경로(applyZoom) 에서 사용 — content > viewport 일 때는 사용자가 보고 있던 위치를
+ * clampOffset 으로 유지해야 하므로 null 분기가 의미 있다. 첫 fit 정렬은 centerOffset 을 사용.
+ */
 export function recenterIfFits(viewport: Size, content: Size): Offset | null {
   if (content.w <= viewport.w && content.h <= viewport.h) {
-    return {
-      x: (viewport.w - content.w) / 2,
-      y: (viewport.h - content.h) / 2
-    };
+    return centerOffset(viewport, content);
   }
   return null;
+}
+
+/**
+ * 콘텐츠를 viewport 중앙에 두는 offset. content 가 viewport 보다 커도 음수 offset 으로 중앙. PRD-012 FR-03.
+ *
+ * 첫 fit 적용 (DiagramZoomDialog 의 args 변경 시) 에서만 사용 — 큰 시퀀스 다이어그램이
+ * fit 후에도 viewport 보다 큰 케이스에서 좌상단만 보이고 끝나는 PRD-012 Issue B 의 수정.
+ */
+export function centerOffset(viewport: Size, content: Size): Offset {
+  return {
+    x: (viewport.w - content.w) / 2,
+    y: (viewport.h - content.h) / 2
+  };
 }
 
 /**

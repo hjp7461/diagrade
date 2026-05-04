@@ -8,6 +8,7 @@ import {
   fitToWindow,
   clampOffset,
   recenterIfFits,
+  centerOffset,
   adjustOffsetForZoom,
   type Offset,
   type Size
@@ -69,7 +70,9 @@ function DialogInner({
   const viewBox = useMemo(() => readViewBox(args.svgNode), [args.svgNode]);
 
   const [viewportSize, setViewportSize] = useState<Size>({ w: 0, h: 0 });
-  const [level, setLevel] = useState<ZoomLevel>(1);
+  // PRD-012: fitToWindow 가 임의 ratio 를 반환할 수 있어 number 로 일반화. +/- 버튼은 여전히
+  // ZoomLevel(=ZOOM_STEPS) 단위로 jump 하지만, fit 직후엔 임의 값일 수 있다.
+  const [level, setLevel] = useState<number>(1);
   const [offset, setOffset] = useState<Offset>({ x: 0, y: 0 });
 
   useEffect(() => {
@@ -110,6 +113,8 @@ function DialogInner({
   }, []);
 
   // args 한 번에 한 번만 fit 적용 — 사용자 줌 변경을 resize 가 덮지 않도록 args 동일성으로 가드.
+  // PRD-012 Issue B: fitToWindow 는 ratio 자체를 반환 (하한 X), centerOffset 은 콘텐츠가
+  // viewport 보다 커도 음의 offset 으로 중앙 정렬 → 첫 페인트에 다이어그램의 가운데가 보임.
   const initedFor = useRef<{ args: ZoomDialogArgs | null }>({ args: null });
   useEffect(() => {
     if (initedFor.current.args === args) return;
@@ -117,9 +122,8 @@ function DialogInner({
     initedFor.current.args = args;
     const fit = fitToWindow(viewBox, viewportSize);
     const content = { w: viewBox.w * fit, h: viewBox.h * fit };
-    const center = recenterIfFits(viewportSize, content);
     setLevel(fit);
-    setOffset(center ?? { x: 0, y: 0 });
+    setOffset(centerOffset(viewportSize, content));
   }, [args, viewportSize, viewBox]);
 
   const contentSize: Size = { w: viewBox.w * level, h: viewBox.h * level };

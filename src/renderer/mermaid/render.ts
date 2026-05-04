@@ -43,6 +43,18 @@ function buildErrorFallback(originalCode: string, errorMessage: string): HTMLEle
   msg.textContent = errorMessage;
   container.appendChild(msg);
 
+  // PRD-012: 사용자가 무엇을 시도해야 할지 한 줄 안내. 메시지 원문은 위 <p> 에 그대로.
+  const hint = document.createElement('p');
+  hint.className = 'diagrade-mermaid-error-hint';
+  Object.assign(hint.style, {
+    margin: '4px 0 8px',
+    fontSize: '12px',
+    opacity: '0.85'
+  } as Partial<CSSStyleDeclaration>);
+  hint.textContent =
+    'mermaid 문법 오류이거나 지원되지 않는 패턴일 수 있습니다. 아래 원본 코드를 확인하거나 mermaid live editor (https://mermaid.live) 로 검증해 주세요.';
+  container.appendChild(hint);
+
   const codeWrapper = document.createElement('pre');
   Object.assign(codeWrapper.style, {
     padding: '8px',
@@ -58,12 +70,27 @@ function buildErrorFallback(originalCode: string, errorMessage: string): HTMLEle
   return container;
 }
 
+/**
+ * mermaid 가 반환한 SVG 문자열을 SVGElement 로 파싱.
+ *
+ * **HTML 파서 사용** (이전: image/svg+xml strict XML).
+ * 이유: mermaid flowchart 는 라벨에 `<foreignObject>` + HTML 을 사용하고, 그 HTML 안에는
+ * void 요소(`<br>`)가 self-close 없이 들어간다. strict XML 파서는 첫 `<br>` 에서 mismatch
+ * 로 실패 — `_ANALYSIS/` 의 한글 분석 마크다운이 fallback 박스(`SVG 파싱 실패`)로 떨어진
+ * PRD-012 Issue A 의 실 원인.
+ *
+ * HTML 파서는 `<svg>` root 를 만나면 자동으로 SVG namespace 로 전환하므로 결과 element 의
+ * 동작 (transform, viewBox, getBoundingClientRect, querySelector 등) 은 strict XML 파싱과
+ * 동일.
+ *
+ * Export 경로 (`serializeSvg.ts`) 는 별개 — `XMLSerializer` 로 strict XML 호환을 만들어
+ * 외부 뷰어 호환성을 보장한다 (`.claude/rules/export-svg-png.md`).
+ */
 function parseSvg(svg: string): SVGElement | null {
-  const doc = new DOMParser().parseFromString(svg, 'image/svg+xml');
-  const root = doc.documentElement;
-  if (root.tagName.toLowerCase() !== 'svg') return null;
-  if (root.querySelector('parsererror') !== null) return null;
-  return root as unknown as SVGElement;
+  const doc = new DOMParser().parseFromString(svg, 'text/html');
+  const root = doc.body.querySelector('svg');
+  if (!root) return null;
+  return root;
 }
 
 /**
@@ -125,5 +152,5 @@ export async function renderMermaidBlocks(
   }
 }
 
-/** 테스트용 export — buildErrorFallback 의 DOM 구조 검증. */
-export const __test__ = { buildErrorFallback };
+/** 테스트용 export — buildErrorFallback 의 DOM 구조 + parseSvg 의 HTML 파서 동작 검증. */
+export const __test__ = { buildErrorFallback, parseSvg };
