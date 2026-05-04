@@ -8,6 +8,20 @@
  * useTheme hook 이 effective theme 에 따라 토글.
  */
 
+/* PRD-014: page-level scroll 차단 — scrollIntoView (그리고 미래의 다른 ancestor scroll
+   조작) 가 body 까지 끌어 올려 탭바가 viewport 밖으로 사라지는 회귀를 막는다. App 의
+   root div 가 height: 100vh 라서 자체 scroll 컨테이너 (`.diagrade-content-main`) 가
+   본문 scroll 을 흡수한다. */
+html, body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+#root {
+  height: 100%;
+}
+
 :root {
   /* 마크다운 본문 — 색상 */
   --diagrade-bg: #ffffff;

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Tab } from '../tabs/state';
 import { renderMarkdown } from './render';
 import { applyHighlight } from './highlight';
+import { scrollMatchIntoMain } from './scrollMatchIntoMain';
 import { renderMermaidBlocks } from '../mermaid/render';
 import { injectExportMenus } from '../export/menu';
 import { saveAllDiagrams } from '../export/saveAllDiagrams';
@@ -152,7 +153,12 @@ export function MarkdownView({
   }, []);
 
   const scrollMatchIntoView = useCallback((el: HTMLElement): void => {
-    el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    // PRD-014: scrollIntoView 는 모든 scrollable ancestor 의 scrollTop 을 조정해
+    // page 가 위로 끌려 올라가는 회귀가 있었음 (탭바 사라짐). main 의 scrollTop 만
+    // 명시적으로 변경하는 helper 로 교체.
+    const main = containerRef.current?.parentElement;
+    if (!main) return;
+    scrollMatchIntoMain(el, main);
   }, []);
 
   /**
