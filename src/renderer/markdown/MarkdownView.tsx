@@ -49,6 +49,8 @@ interface MarkdownViewProps {
   /** PRD-009: 부분 변경 dispatch — App 의 setSearch 와 호환. */
   onSearchChange: (partial: Partial<SearchSession>) => void;
   onNotify: (message: string) => void;
+  /** PRD-011: ⤢ 확대보기 트리거. 정의 시 export 메뉴에 ⤢ 항목이 추가된다. */
+  onZoomTrigger?: (svg: SVGElement, oneBasedIndex: number) => void;
 }
 
 const SEARCH_DEBOUNCE_MS = 150;
@@ -72,7 +74,8 @@ export function MarkdownView({
   pngScale,
   search,
   onSearchChange,
-  onNotify
+  onNotify,
+  onZoomTrigger
 }: MarkdownViewProps) {
   const [html, setHtml] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
@@ -283,7 +286,11 @@ export function MarkdownView({
       if (cancelled) return;
       await applyHighlight(container);
       if (cancelled) return;
-      injectExportMenus(container, { activeTabPath: tab.filePath, pngScale });
+      injectExportMenus(container, {
+        activeTabPath: tab.filePath,
+        pngScale,
+        onZoomTrigger
+      });
 
       // PRD-002 FR-04: scrollTop 복원.
       if (pendingScrollTopRef.current !== null) {
@@ -306,7 +313,7 @@ export function MarkdownView({
     return () => {
       cancelled = true;
     };
-  }, [html, tab.filePath, theme, pngScale, runSearch]);
+  }, [html, tab.filePath, theme, pngScale, runSearch, onZoomTrigger]);
 
   // ────────────────────────────────────────────────────────────────
   // 메뉴 명령 수신 — close-tab/next-tab/prev-tab 은 App, 본문 관련은 여기서.

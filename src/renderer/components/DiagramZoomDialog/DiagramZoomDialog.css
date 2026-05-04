@@ -1,0 +1,121 @@
+/*
+ * 토큰 (--diagrade-overlay-bg, --diagrade-elevated-bg, --diagrade-elevated-border) 은
+ * theme.css 의 light/dark 양쪽에서 정의 — 다크 모드 자동 반영.
+ */
+
+.diagrade-zoom-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+}
+
+.diagrade-zoom-dialog__backdrop {
+  position: absolute;
+  inset: 0;
+  background: var(--diagrade-overlay-bg);
+}
+
+.diagrade-zoom-dialog__chrome {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--diagrade-elevated-bg);
+  color: var(--diagrade-fg);
+  margin: 32px;
+  border: 1px solid var(--diagrade-elevated-border);
+  border-radius: 8px;
+  box-shadow: 0 12px 32px var(--diagrade-shadow);
+  overflow: hidden;
+}
+
+.diagrade-zoom-dialog__toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--diagrade-elevated-border);
+  background: var(--diagrade-elevated-bg);
+  user-select: none;
+}
+
+.diagrade-zoom-dialog__group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.diagrade-zoom-dialog__btn,
+.diagrade-zoom-dialog__close {
+  background: transparent;
+  color: var(--diagrade-fg);
+  border: 1px solid var(--diagrade-chrome-border);
+  border-radius: 4px;
+  padding: 4px 10px;
+  font: inherit;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.diagrade-zoom-dialog__btn:hover:not(:disabled),
+.diagrade-zoom-dialog__close:hover {
+  background: var(--diagrade-search-btn-hover-bg);
+  border-color: var(--diagrade-search-btn-hover-border);
+}
+
+.diagrade-zoom-dialog__btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.diagrade-zoom-dialog__close {
+  font-size: 14px;
+  padding: 4px 8px;
+}
+
+.diagrade-zoom-dialog__level {
+  min-width: 56px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  color: var(--diagrade-fg-muted);
+}
+
+.diagrade-zoom-dialog__stage-host {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background: var(--diagrade-bg);
+}
+
+.diagrade-zoom-stage {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  /* 드래그 중 텍스트 선택 방지. cursor 는 inner 에서 직접 inline 으로 관리. */
+  user-select: none;
+}
+
+.diagrade-zoom-stage__inner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  /* transform / cursor 는 ZoomStage.tsx 의 inline style 이 관리. */
+  will-change: transform;
+}
+
+.diagrade-zoom-stage__svg-host > svg {
+  display: block;
+  /* 본문 SVG 의 반응형 사이즈 제약을 무시 — viewBox 자연 크기 그대로. */
+  max-width: none;
+  max-height: none;
+}
+
+@media print {
+  .diagrade-zoom-dialog {
+    display: none !important;
+  }
+}

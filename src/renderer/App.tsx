@@ -15,6 +15,10 @@ import { useTheme } from './theme/useTheme';
 import { searchOtherTabs, type OtherTabResult } from './search/searchOtherTabs';
 import { OtherTabsPanel } from './search/OtherTabsPanel';
 import { SettingsDialog } from './settings/SettingsDialog';
+import {
+  DiagramZoomDialog,
+  type ZoomDialogArgs
+} from './components/DiagramZoomDialog';
 import type { Config } from '../shared/types';
 
 const DEFAULT_MAX_TABS = 20;
@@ -43,6 +47,9 @@ export function App() {
 
   // PRD-010: 설정 모달 toggle. 모달은 단일 mount 라 portal 불필요.
   const [settingsOpen, setSettingsOpen] = useState(false);
+
+  // 새 args 객체로 교체할 때마다 dialog 가 fit-to-window 로 재초기화 (args 동일성 사용).
+  const [zoomArgs, setZoomArgs] = useState<ZoomDialogArgs | null>(null);
 
   // FR-38/41 + PRD-004 FR-01 + PRD-006 FR-01 + PRD-010: config 로드. 실패해도 기본값으로 동작.
   useEffect(() => {
@@ -264,6 +271,18 @@ export function App() {
 
   const activeTab = tabs.state.tabs.find((t) => t.id === tabs.state.activeTabId) ?? null;
 
+  const openZoomDialog = useCallback(
+    (svg: SVGElement, oneBasedIndex: number) => {
+      setZoomArgs({
+        svgNode: svg,
+        index: oneBasedIndex,
+        activeTabPath: activeTab?.filePath ?? null,
+        pngScale
+      });
+    },
+    [activeTab?.filePath, pngScale]
+  );
+
   return (
     <div style={appStyle}>
       <TabBar
@@ -282,6 +301,7 @@ export function App() {
             search={search}
             onSearchChange={updateSearch}
             onNotify={notifications.push}
+            onZoomTrigger={openZoomDialog}
           />
         ) : (
           <EmptyState />
@@ -297,6 +317,11 @@ export function App() {
           onClose={() => setSettingsOpen(false)}
         />
       )}
+      <DiagramZoomDialog
+        args={zoomArgs}
+        onClose={() => setZoomArgs(null)}
+        onError={notifications.push}
+      />
       <NotificationStack items={notifications.items} onDismiss={notifications.dismiss} />
     </div>
   );
