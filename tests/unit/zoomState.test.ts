@@ -50,6 +50,50 @@ describe('zoomIn / zoomOut (PRD-011 FR-12)', () => {
   });
 });
 
+describe('zoomIn / zoomOut — 임의 fit ratio 진입 (PRD-015)', () => {
+  it('zoomIn(0.35) === 0.5 (사용자 캡처 — 35% fit 후 ➕)', () => {
+    // 이전(normalize): 0.25 (nearest, dist 0.10) → 의도와 반대로 *축소*.
+    // 정정: 방향 strict next → 0.5.
+    expect(zoomIn(0.35)).toBe(0.5);
+  });
+
+  it('zoomIn(0.99) === 1 (1 보다 살짝 작음 → 100% 로)', () => {
+    expect(zoomIn(0.99)).toBe(1);
+  });
+
+  it('zoomIn(1.01) === 1.5 (1 보다 살짝 큼 → 150% 로, normalize 면 1 로 줄었음)', () => {
+    expect(zoomIn(1.01)).toBe(1.5);
+  });
+
+  it('zoomIn(5) === 4 (모든 step 보다 큼 → 최대 step)', () => {
+    expect(zoomIn(5)).toBe(4);
+  });
+
+  it('zoomOut(0.45) === 0.25 (대칭 회귀 — 0.5 가 nearest 지만 ➖ 는 작아져야 함)', () => {
+    expect(zoomOut(0.45)).toBe(0.25);
+  });
+
+  it('zoomOut(0.99) === 0.75 (1 보다 살짝 작아도 한 단계 더 작은 step)', () => {
+    expect(zoomOut(0.99)).toBe(0.75);
+  });
+
+  it('zoomOut(0.2) === 0.25 (모든 step 보다 작음 → 최소 step 그대로)', () => {
+    expect(zoomOut(0.2)).toBe(0.25);
+  });
+
+  it('canZoomIn(5) === false (이미 최대 이상)', () => {
+    expect(canZoomIn(5)).toBe(false);
+    expect(canZoomIn(4)).toBe(false);
+    expect(canZoomIn(3.99)).toBe(true);
+  });
+
+  it('canZoomOut(0.2) === false (이미 최소 이하)', () => {
+    expect(canZoomOut(0.2)).toBe(false);
+    expect(canZoomOut(0.25)).toBe(false);
+    expect(canZoomOut(0.26)).toBe(true);
+  });
+});
+
 describe('fitToWindow — 연속 fit (PRD-012 FR-03 / 기존 PRD-011 FR-13 갱신)', () => {
   it('viewBox 가 viewport 보다 약간 큼 → 정확한 ratio 반환 (이전: 0.25 스냅)', () => {
     // 2000×1500 / 800×600 → ratio 0.4
