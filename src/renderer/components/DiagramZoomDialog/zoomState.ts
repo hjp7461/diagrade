@@ -26,40 +26,32 @@ export interface Size {
 /** 한 모서리가 viewport 안에 최소 이만큼 px 남도록 클램프. PRD-011 FR-19. */
 export const DEFAULT_PAN_MARGIN = 80;
 
-/** ZOOM_STEPS 에 없는 임의 number 가 들어왔을 때 가까운 단계로 정규화. */
-function normalize(level: number): ZoomLevel {
-  let best: ZoomLevel = 1;
-  let bestDist = Infinity;
-  for (const s of ZOOM_STEPS) {
-    const d = Math.abs(s - level);
-    if (d < bestDist) {
-      best = s;
-      bestDist = d;
-    }
-  }
-  return best;
-}
-
-/** 현재 level 이 ZOOM_STEPS 의 정확한 단계가 아니어도(예: fitToWindow 의 임의 ratio)
- * normalize 로 가까운 단계를 찾아 한 칸 위/아래로 이동한다. PRD-012 이전엔 fit 도 discrete
- * 였으므로 항상 indexOf 가 hit 했지만, 이제는 fit 후 ➕/➖ 가 임의 ratio 에서도 자연스럽게
- * 디스크리트 단계로 진입해야 한다. */
+/** 현재 level 보다 *엄격히 큰* 첫 ZOOM_STEP 으로 이동. PRD-015.
+ *
+ * 이전 (PRD-011 ~ PRD-012) 은 indexOf 가 -1 일 때 normalize(nearest) 로 fallback 했는데,
+ * fit ratio 가 0.35 같은 임의 값일 때 nearest = 0.25 가 되어 ➕ 가 *축소* 로 동작하는
+ * 회귀가 발생. 방향 strict 로 변경 — ZOOM_STEPS 의 정확 단계든 임의 ratio 든 동일 동작.
+ * level 이 ZOOM_STEPS 의 최대 (4) 이상이면 4 그대로.
+ */
 export function zoomIn(level: number): ZoomLevel {
-  const idx = ZOOM_STEPS.indexOf(level as ZoomLevel);
-  if (idx === -1) return normalize(level);
-  if (idx >= ZOOM_STEPS.length - 1) return ZOOM_STEPS[idx];
-  return ZOOM_STEPS[idx + 1];
+  for (const s of ZOOM_STEPS) {
+    if (s > level) return s;
+  }
+  return ZOOM_STEPS[ZOOM_STEPS.length - 1];
 }
 
+/** 현재 level 보다 *엄격히 작은* 가장 큰 ZOOM_STEP 으로 이동. PRD-015.
+ * level ≤ 0.25 (최소) 이면 0.25 그대로. */
 export function zoomOut(level: number): ZoomLevel {
-  const idx = ZOOM_STEPS.indexOf(level as ZoomLevel);
-  if (idx === -1) return normalize(level);
-  if (idx <= 0) return ZOOM_STEPS[idx];
-  return ZOOM_STEPS[idx - 1];
+  let best: ZoomLevel | null = null;
+  for (const s of ZOOM_STEPS) {
+    if (s < level) best = s;
+    else break;
+  }
+  return best ?? ZOOM_STEPS[0];
 }
 
 export function canZoomIn(level: number): boolean {
-  // 임의 ratio 도 위쪽으로 갈 단계가 있는 한 true.
   return level < ZOOM_STEPS[ZOOM_STEPS.length - 1];
 }
 
