@@ -51,9 +51,25 @@ export function ZoomStage({
     const host = hostRef.current;
     if (!host) return;
     const clone = svgNode.cloneNode(true) as SVGElement;
-    // 본문에서 받은 max-width/display 제약은 transform 과 충돌 — 자연 크기 회복.
-    clone.removeAttribute('width');
-    clone.removeAttribute('height');
+    // PRD-012 Issue B 후속: viewBox 의 자연 크기를 width/height attribute 로 *명시 부여*.
+    //
+    // 원래 의도:
+    //   - 본문에서 받은 max-width / width="100%" 제약은 transform 과 충돌 → attribute 제거.
+    //
+    // 그러나 mermaid 11 은 width="100%" + viewBox 만으로 SVG 를 보낸다. attribute 를 제거하면
+    // SVG 의 natural size 가 부모 박스 / CSS default(300×150) 에 의존하게 되어, transform
+    // scale 이 의도한 viewBox 픽셀 매핑과 어긋난다 — 다이얼로그에 다이어그램 일부만 보이는 증상.
+    //
+    // 해결: viewBox 의 w/h 를 width/height attribute 로 다시 부여 → SVG 가 정확히 viewBox
+    // 자연 크기로 그려지고, transform 의 translate/scale 이 픽셀 단위로 정확히 매핑된다.
+    const vbAttr = clone.getAttribute('viewBox');
+    const vbParts = vbAttr?.trim().split(/[\s,]+/).map(Number);
+    if (vbParts && vbParts.length === 4 && vbParts[2] > 0 && vbParts[3] > 0) {
+      clone.setAttribute('width', String(vbParts[2]));
+      clone.setAttribute('height', String(vbParts[3]));
+    } else {
+      // viewBox 가 없으면 기존 width/height attribute 를 유지 (mermaid 가 보장).
+    }
     clone.style.maxWidth = 'none';
     clone.style.maxHeight = 'none';
     clone.style.display = 'block';
