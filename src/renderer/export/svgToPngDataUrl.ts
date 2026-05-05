@@ -28,23 +28,32 @@ export async function svgToPngDataUrl(svg: SVGSVGElement, scale = 2): Promise<st
   clone.setAttribute('height', String(dims.baseHeight));
 
   const xml = new XMLSerializer().serializeToString(clone);
-  const blob = new Blob([xml], { type: 'image/svg+xml;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
+  // CSP 정합: blob: 은 본 앱의 img-src 가 미허용 — data URI 만 사용 (svgXmlToDataUrl 참조).
+  const url = svgXmlToDataUrl(xml);
 
-  try {
-    const img = await loadImage(url);
-    const canvas = document.createElement('canvas');
-    canvas.width = dims.canvasWidth;
-    canvas.height = dims.canvasHeight;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) throw new Error('2D canvas context unavailable');
-    ctx.fillStyle = '#ffffff'; // FR-24
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    return canvas.toDataURL('image/png');
-  } finally {
-    URL.revokeObjectURL(url);
-  }
+  const img = await loadImage(url);
+  const canvas = document.createElement('canvas');
+  canvas.width = dims.canvasWidth;
+  canvas.height = dims.canvasHeight;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('2D canvas context unavailable');
+  ctx.fillStyle = '#ffffff'; // FR-24
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL('image/png');
+}
+
+/**
+ * SVG XML → data: URI. `<img src=>` 로 로드해 canvas 에 그리는 용도.
+ *
+ * `URL.createObjectURL(blob)` 의 `blob:` URL 은 본 앱의 CSP `img-src` 가 허용하지 않아
+ * (`'self' diagrade-asset: data:`) `<img>` 로딩이 차단된다. data URI 는 이미 허용되어 있어
+ * 권한 확장 없이 동일 효과를 달성. PRD-016 의 후속 fix (PR #17 머지 후 발견된 root cause).
+ *
+ * 회귀 주의: blob URL 로 되돌리지 말 것 — `.claude/rules/export-svg-png.md` 참조.
+ */
+export function svgXmlToDataUrl(xml: string): string {
+  return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(xml);
 }
 
 function loadImage(url: string): Promise<HTMLImageElement> {
