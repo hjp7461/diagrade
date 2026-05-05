@@ -126,4 +126,28 @@ describe('injectExportMenus', () => {
     expect(btn.disabled).toBe(false);
     expect(btn.textContent).toBe(original);
   });
+
+  it('PRD-016: 버튼 클릭 시 export 실패하면 onError 콜백이 사용자 친화 카피로 호출됨', async () => {
+    const container = buildContainer([{ kind: 'chart' }]);
+    const onError = vi.fn();
+    injectExportMenus(container, { activeTabPath: null, pngScale: 2, onError });
+    const btn = container.querySelector<HTMLButtonElement>('.' + BUTTON_CLASS)!;
+
+    // window.diagrade 미정의 → exportChart throw → catch 에서 onError 호출.
+    btn.click();
+    await new Promise((r) => setTimeout(r, 0));
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(onError.mock.calls[0]![0]).toMatch(/실패/);
+  });
+
+  it('PRD-016: onError 미정의 시 기존 동작 (catch 에서 console.error 만, throw 안 흘러나감)', async () => {
+    const container = buildContainer([{ kind: 'chart' }]);
+    injectExportMenus(container, { activeTabPath: null, pngScale: 2 });
+    const btn = container.querySelector<HTMLButtonElement>('.' + BUTTON_CLASS)!;
+    expect(() => btn.click()).not.toThrow();
+    await new Promise((r) => setTimeout(r, 0));
+    await new Promise((r) => setTimeout(r, 0));
+  });
 });

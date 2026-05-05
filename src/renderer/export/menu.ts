@@ -23,6 +23,11 @@ interface InjectOptions {
   pngScale: PngScale;
   /** 정의 시 메뉴에 ⤢ 항목 추가. 미정의 시 기존 PRD-001 동작 그대로. */
   onZoomTrigger?: (svg: SVGElement, oneBasedIndex: number) => void;
+  /**
+   * PRD-016: export 실패 시 사용자 알림 발화 콜백.
+   * 미정의 시 기존 동작(catch 에서 console.error 만) 유지 — 회귀 안전.
+   */
+  onError?: (message: string) => void;
 }
 
 export function injectExportMenus(container: HTMLElement, options: InjectOptions): void {
@@ -51,10 +56,10 @@ function buildMenu(
     );
   }
   menu.appendChild(
-    makeButton('⬇ PNG', () => exportChart(chart, oneBasedIndex, options, 'png'))
+    makeButton('⬇ PNG', () => exportChart(chart, oneBasedIndex, options, 'png'), options.onError)
   );
   menu.appendChild(
-    makeButton('⬇ SVG', () => exportChart(chart, oneBasedIndex, options, 'svg'))
+    makeButton('⬇ SVG', () => exportChart(chart, oneBasedIndex, options, 'svg'), options.onError)
   );
   return menu;
 }
@@ -71,7 +76,11 @@ function makeSimpleButton(label: string, onClick: () => void): HTMLButtonElement
   return btn;
 }
 
-function makeButton(label: string, onClick: () => Promise<void>): HTMLButtonElement {
+function makeButton(
+  label: string,
+  onClick: () => Promise<void>,
+  onError?: (message: string) => void
+): HTMLButtonElement {
   const btn = document.createElement('button');
   btn.type = 'button';
   btn.className = BUTTON_CLASS;
@@ -85,7 +94,9 @@ function makeButton(label: string, onClick: () => Promise<void>): HTMLButtonElem
     try {
       await onClick();
     } catch (err) {
+      // PRD-016: console 에는 stack 보존, 사용자에겐 친화 카피로 toast 발화.
       console.error('export failed:', err);
+      onError?.('내보내기에 실패했습니다. 다이어그램이 너무 크거나 일시적인 문제일 수 있습니다.');
     } finally {
       btn.disabled = false;
       btn.textContent = label;

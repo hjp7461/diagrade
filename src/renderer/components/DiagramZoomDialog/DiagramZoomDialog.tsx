@@ -253,8 +253,11 @@ function useExportImpl(
           effective
         );
       } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        onError?.(`내보내기 실패: ${msg}`);
+        // PRD-016: console 에 stack 보존, 사용자에겐 menu.ts 와 동일한 친화 카피.
+        console.error('zoom dialog export failed:', e);
+        onError?.(
+          '내보내기에 실패했습니다. 다이어그램이 너무 크거나 일시적인 문제일 수 있습니다.'
+        );
       }
     },
     [args, deps, onError]

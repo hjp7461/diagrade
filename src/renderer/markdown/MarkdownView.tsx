@@ -295,7 +295,9 @@ export function MarkdownView({
       injectExportMenus(container, {
         activeTabPath: tab.filePath,
         pngScale,
-        onZoomTrigger
+        onZoomTrigger,
+        // PRD-016: export 실패가 dialog 이후 침묵 사라지지 않도록 toast 발화.
+        onError: onNotify
       });
 
       // PRD-002 FR-04: scrollTop 복원.
@@ -345,6 +347,9 @@ export function MarkdownView({
           onNotify('이 문서에는 다이어그램이 없습니다.');
         } else if (result.cancelledAt !== null) {
           onNotify(`${result.saved} 개 저장 후 취소되었습니다.`);
+        } else if (result.failed > 0) {
+          // PRD-016: 부분 실패 가시화.
+          onNotify(`다이어그램 ${result.saved} 개 저장 / ${result.failed} 개 실패.`);
         } else {
           onNotify(`다이어그램 ${result.saved} 개를 저장했습니다.`);
         }
