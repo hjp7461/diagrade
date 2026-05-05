@@ -10,15 +10,15 @@
 
 | 영역 | 선택 |
 |---|---|
-| 셸 | Electron 33+ |
-| 언어 | TypeScript 5.x |
-| 렌더러 | React 18 + Vite |
+| 셸 | Electron 41 |
+| 언어 | TypeScript 6 |
+| 렌더러 | React 19 + Vite 7 |
 | 마크다운 파서 | markdown-it (+ GFM 플러그인) |
-| 코드 하이라이트 | Shiki (lazy-load) |
+| 코드 하이라이트 | Shiki 4 (lazy-load) |
 | 다이어그램 | mermaid 11 (번들 포함) |
-| HTML sanitize | DOMPurify |
-| 패키징 | electron-builder |
-| 테스트 | Vitest + Playwright |
+| HTML sanitize | DOMPurify 3 |
+| 패키징 | electron-builder 26 |
+| 테스트 | Vitest 4 + Playwright |
 
 배포는 GitHub clone / source download 후 사용자가 직접 빌드하는 방식. 코드 서명·자동 업데이트는 v1.0 범위 외.
 
