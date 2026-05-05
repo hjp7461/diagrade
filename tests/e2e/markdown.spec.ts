@@ -86,8 +86,10 @@ test('FR-21: mermaid 컨테이너 호버 시 export 메뉴 등장', async () => 
   await win.waitForTimeout(300);
   await expect(menu).toBeVisible();
 
-  // PNG / SVG 두 버튼 확인.
-  await expect(menu.locator('button')).toHaveCount(2);
+  // PNG / SVG 두 버튼 확인. (PRD-011 이후 ⤢ 확대보기가 추가되어 총 3 개지만,
+  // 본 테스트의 의도는 PNG / SVG 진입점 검증이므로 명시 라벨로 검증.)
+  await expect(menu.locator('button', { hasText: 'PNG' })).toHaveCount(1);
+  await expect(menu.locator('button', { hasText: 'SVG' })).toHaveCount(1);
 });
 
 test('FR-08: 잘못된 mermaid 코드는 에러 fallback 으로 표시', async () => {
