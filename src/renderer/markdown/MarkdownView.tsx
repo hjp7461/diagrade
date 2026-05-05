@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Tab } from '../tabs/state';
 import { renderMarkdown } from './render';
 import { applyHighlight } from './highlight';
@@ -394,6 +394,12 @@ export function MarkdownView({
     };
   }, []);
 
+  // PRD-018 회귀 가드: React 19 의 reconciliation 이 매 render 마다 새 `{__html}`
+  // object 를 prop 변경으로 인식해 inner content 를 재적용 → 외부에서 inject 된
+  // mermaid `<svg>` / 검색 `<mark>` 가 reset 되는 회귀. useMemo 로 reference 를
+  // 안정화해 html string 이 동일한 동안 재적용 skip.
+  const dangerousHtml = useMemo(() => ({ __html: html }), [html]);
+
   if (error) {
     return (
       <div className="diagrade-error-box" style={errorStyle} role="alert">
@@ -409,7 +415,7 @@ export function MarkdownView({
         key={theme}
         ref={containerRef}
         className="diagrade-markdown"
-        dangerouslySetInnerHTML={{ __html: html }}
+        dangerouslySetInnerHTML={dangerousHtml}
         style={contentStyle}
       />
       {search.open && (
