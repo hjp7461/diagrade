@@ -11,9 +11,12 @@ function fakeSvg(): SVGSVGElement {
   return document.createElementNS(SVG_NS, 'svg') as SVGSVGElement;
 }
 
+type Serialize = NonNullable<ExportSingleDeps['serialize']>;
+type SvgToPng = NonNullable<ExportSingleDeps['svgToPng']>;
+
 interface MockDeps extends Required<Omit<ExportSingleDeps, 'serialize' | 'svgToPng'>> {
-  serialize: ReturnType<typeof vi.fn>;
-  svgToPng: ReturnType<typeof vi.fn>;
+  serialize: ReturnType<typeof vi.fn<Serialize>>;
+  svgToPng: ReturnType<typeof vi.fn<SvgToPng>>;
 }
 
 function makeDeps(overrides: Partial<MockDeps> = {}): MockDeps {

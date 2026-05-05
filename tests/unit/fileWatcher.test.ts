@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi, type Mock } from 'vitest';
 import { mkdtempSync, writeFileSync, rmSync, unlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -22,8 +22,8 @@ function wait(ms: number): Promise<void> {
 
 describe('FileWatcher (PRD-002 §3.1)', () => {
   let tmpDir: string;
-  let onChange: ReturnType<typeof vi.fn>;
-  let onMissing: ReturnType<typeof vi.fn>;
+  let onChange: Mock<() => void>;
+  let onMissing: Mock<(filename: string) => void>;
   let watcher: FileWatcher;
 
   beforeEach(() => {
