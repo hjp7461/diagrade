@@ -1,6 +1,7 @@
 import { serializeSvg } from './serializeSvg';
 import { svgToPngDataUrl } from './svgToPngDataUrl';
 import { suggestedDiagramFileName } from './suggestedFilename';
+import { extractPngBase64 } from './pngBase64';
 import type { PngScale, SaveDialogFilter } from '../../shared/types';
 
 /**
@@ -49,8 +50,11 @@ export async function exportSingleChart(
   if (ext === 'svg') {
     await deps.writeText(target, serialize(svg));
   } else {
+    // PRD-016: extractPngBase64 가 빈/비정상 dataURL 을 throw 로 차단 — 0 바이트 파일이
+    // 디스크에 닿지 않도록 renderer 측 1 차 방어. main 의 writeBinaryFile 도 자체 방어.
     const dataUrl = await toPng(svg, pngScale);
-    await deps.writeBinary(target, dataUrl.split(',')[1] ?? '');
+    const base64 = extractPngBase64(dataUrl);
+    await deps.writeBinary(target, base64);
   }
   return { saved: true };
 }

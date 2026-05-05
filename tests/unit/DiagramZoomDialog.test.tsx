@@ -236,7 +236,8 @@ describe('DiagramZoomDialog (PRD-011)', () => {
       png.click();
       await vi.waitFor(() => expect(onError).toHaveBeenCalled());
     });
-    expect(onError).toHaveBeenCalledWith(expect.stringContaining('내보내기 실패'));
+    // PRD-016: 카피가 사용자 친화 톤으로 변경됨 — '내보내기에 실패했습니다…'.
+    expect(onError).toHaveBeenCalledWith(expect.stringContaining('내보내기에 실패'));
   });
 
   it('FR-22: ZoomStage 가 svgNode 사본 mount — 원본 부모 유지', () => {

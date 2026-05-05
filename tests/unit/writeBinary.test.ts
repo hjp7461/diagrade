@@ -36,9 +36,10 @@ describe('writeBinaryFile (PNG 등 base64 → bytes)', () => {
     expect(bytes.equals(original)).toBe(true);
   });
 
-  it('빈 base64 → 빈 파일', async () => {
+  it('PRD-016: 빈 base64 → throw, 파일 미생성', async () => {
+    // 회귀 방지: 이전에는 0 바이트 파일이 침묵 생성되어 PNG 저장 실패가 사용자에게 안 보였다.
     const path = join(tmpDir, 'empty.bin');
-    await writeBinaryFile(path, '');
-    expect(readFileSync(path).length).toBe(0);
+    await expect(writeBinaryFile(path, '')).rejects.toThrow(/비어있습니다/);
+    expect(() => readFileSync(path)).toThrow(); // ENOENT — 파일 자체가 없어야 함.
   });
 });

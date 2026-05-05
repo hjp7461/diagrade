@@ -39,7 +39,7 @@ describe('saveAllDiagrams (FR-32~35)', () => {
     const saveFile = vi.fn();
     const writeText = vi.fn();
     const r = await saveAllDiagrams(container, '/x/note.md', { saveFile, writeText });
-    expect(r).toEqual({ saved: 0, cancelledAt: null, noCharts: true });
+    expect(r).toEqual({ saved: 0, failed: 0, cancelledAt: null, noCharts: true });
     expect(saveFile).not.toHaveBeenCalled();
   });
 
@@ -54,7 +54,7 @@ describe('saveAllDiagrams (FR-32~35)', () => {
 
     const r = await saveAllDiagrams(container, '/x/report.md', { saveFile, writeText });
 
-    expect(r).toEqual({ saved: 3, cancelledAt: null, noCharts: false });
+    expect(r).toEqual({ saved: 3, failed: 0, cancelledAt: null, noCharts: false });
     expect(saveFile).toHaveBeenCalledTimes(3);
     expect(writeText).toHaveBeenCalledTimes(3);
     expect(count).toBe(3);
@@ -79,7 +79,7 @@ describe('saveAllDiagrams (FR-32~35)', () => {
     const writeText = vi.fn();
 
     const r = await saveAllDiagrams(container, '/x/note.md', { saveFile, writeText });
-    expect(r).toEqual({ saved: 0, cancelledAt: 1, noCharts: false });
+    expect(r).toEqual({ saved: 0, failed: 0, cancelledAt: 1, noCharts: false });
     expect(saveFile).toHaveBeenCalledTimes(1);
     expect(writeText).not.toHaveBeenCalled();
   });
@@ -95,7 +95,7 @@ describe('saveAllDiagrams (FR-32~35)', () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
 
     const r = await saveAllDiagrams(container, '/x/note.md', { saveFile, writeText });
-    expect(r).toEqual({ saved: 2, cancelledAt: 3, noCharts: false });
+    expect(r).toEqual({ saved: 2, failed: 0, cancelledAt: 3, noCharts: false });
     expect(saveFile).toHaveBeenCalledTimes(3); // 1, 2 (저장), 3 (취소)
     expect(writeText).toHaveBeenCalledTimes(2);
   });
@@ -171,7 +171,7 @@ describe('saveAllDiagrams (PRD-008: PNG 분기)', () => {
       svgToPng
     });
 
-    expect(r).toEqual({ saved: 2, cancelledAt: null, noCharts: false });
+    expect(r).toEqual({ saved: 2, failed: 0, cancelledAt: null, noCharts: false });
     expect(svgToPng).toHaveBeenCalledTimes(2);
     expect(deps.writeBinary).toHaveBeenCalledTimes(2);
     expect(deps.writeText).not.toHaveBeenCalled();
@@ -232,7 +232,7 @@ describe('saveAllDiagrams (PRD-008: PNG 분기)', () => {
       svgToPng
     });
 
-    expect(r).toEqual({ saved: 0, cancelledAt: 1, noCharts: false });
+    expect(r).toEqual({ saved: 0, failed: 0, cancelledAt: 1, noCharts: false });
     expect(svgToPng).not.toHaveBeenCalled();
     expect(deps.writeBinary).not.toHaveBeenCalled();
   });
@@ -285,6 +285,46 @@ describe('saveAllDiagrams (PRD-008: PNG 분기)', () => {
     expect(seen).toEqual(['diagram-1.png']);
   });
 
+  it('PRD-016: PNG 부분 실패 — svgToPng throw 시 다른 차트는 진행, failed 누적', async () => {
+    const container = buildContainer(['chart', 'chart', 'chart']);
+    const deps = pngDeps();
+    deps.saveFile.mockImplementation(async (name: string) => `/tmp/${name}`);
+    let n = 0;
+    const svgToPng = vi.fn().mockImplementation(async () => {
+      n++;
+      if (n === 2) throw new Error('canvas tainted');
+      return 'data:image/png;base64,QUJD';
+    });
+
+    const r = await saveAllDiagrams(container, '/x/n.md', deps, {
+      format: 'png',
+      pngScale: 2,
+      svgToPng
+    });
+
+    expect(r).toEqual({ saved: 2, failed: 1, cancelledAt: null, noCharts: false });
+    expect(deps.writeBinary).toHaveBeenCalledTimes(2);
+  });
+
+  it('PRD-016: PNG 빈 dataURL → 해당 차트만 실패, 다른 차트 진행', async () => {
+    const container = buildContainer(['chart', 'chart']);
+    const deps = pngDeps();
+    deps.saveFile.mockImplementation(async (name: string) => `/tmp/${name}`);
+    let n = 0;
+    const svgToPng = vi.fn().mockImplementation(async () => {
+      n++;
+      return n === 1 ? '' : 'data:image/png;base64,QUJD';
+    });
+
+    const r = await saveAllDiagrams(container, '/x/n.md', deps, {
+      format: 'png',
+      pngScale: 2,
+      svgToPng
+    });
+    expect(r).toEqual({ saved: 1, failed: 1, cancelledAt: null, noCharts: false });
+    expect(deps.writeBinary).toHaveBeenCalledTimes(1);
+  });
+
   it('FR-09: PNG 모드 0 개 차트 — noCharts=true, svgToPng 미호출', async () => {
     const container = buildContainer(['error']);
     const deps = pngDeps();
@@ -295,7 +335,7 @@ describe('saveAllDiagrams (PRD-008: PNG 분기)', () => {
       pngScale: 2,
       svgToPng
     });
-    expect(r).toEqual({ saved: 0, cancelledAt: null, noCharts: true });
+    expect(r).toEqual({ saved: 0, failed: 0, cancelledAt: null, noCharts: true });
     expect(deps.saveFile).not.toHaveBeenCalled();
     expect(svgToPng).not.toHaveBeenCalled();
   });
@@ -336,7 +376,7 @@ describe('saveAllDiagrams (호환성: 기존 deps 객체 무손상)', () => {
     const saveFile = vi.fn().mockResolvedValue('/tmp/x-1.svg');
     const writeText = vi.fn().mockResolvedValue(undefined);
     const r = await saveAllDiagrams(root, '/x/x.md', { saveFile, writeText });
-    expect(r).toEqual({ saved: 1, cancelledAt: null, noCharts: false });
+    expect(r).toEqual({ saved: 1, failed: 0, cancelledAt: null, noCharts: false });
     expect(writeText).toHaveBeenCalledTimes(1);
   });
 });
