@@ -22,6 +22,37 @@ html, body {
   height: 100%;
 }
 
+/* PDF 내보내기(printToPDF)는 print 미디어로 재레이아웃된다. 화면용 고정 높이 +
+   overflow(위 html/body/#root + App 루트 div 의 height:100vh + main 의 overflow:auto)
+   가 그대로 남으면 인쇄 가능 영역이 viewport 높이로 한정되어 본문이 잘린다(일부 페이지만
+   저장). print 에서만 제약을 풀어 본문이 여러 페이지로 흐르게 한다. 인라인 스타일을
+   덮어야 하므로 !important 필수. 화면 동작은 그대로. */
+@media print {
+  html,
+  body,
+  #root,
+  .diagrade-app-root,
+  main.diagrade-content-main {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  .diagrade-app-root {
+    display: block !important;
+  }
+  main.diagrade-content-main {
+    flex: none !important;
+  }
+  /* 다이어그램/표/코드/이미지가 페이지 경계에서 잘리지 않도록 (단일 블록이 1 페이지보다
+     크면 브라우저가 불가피하게 분할 — 정상). */
+  .diagrade-markdown .mermaid,
+  .diagrade-markdown pre,
+  .diagrade-markdown table,
+  .diagrade-markdown img {
+    break-inside: avoid;
+  }
+}
+
 :root {
   /* 마크다운 본문 — 색상 */
   --diagrade-bg: #ffffff;

@@ -284,7 +284,7 @@ export function App() {
   );
 
   return (
-    <div style={appStyle}>
+    <div className="diagrade-app-root" style={appStyle}>
       <TabBar
         tabs={tabs.state.tabs}
         activeTabId={tabs.state.activeTabId}
