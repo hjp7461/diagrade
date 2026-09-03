@@ -4,6 +4,7 @@
   "private": true,
   "description": "Markdown + Mermaid viewer optimized for clean diagram exports.",
   "license": "MIT",
+  "author": "Jeoung Pyo Hong <hjp7461@gmail.com>",
   "main": "out/main/index.js",
   "engines": {
     "node": ">=22.0.0"
