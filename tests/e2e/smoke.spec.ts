@@ -73,6 +73,7 @@ test('preload API surface — 필수 채널이 모두 노출됨', async () => {
       protocolReg: get('protocol', 'registerTabDir'),
       printPdf: get('print', 'pdf'),
       onFiles: get('events', 'onFilesOpened'),
+      appTakePending: get('app', 'takePendingFiles'),
       // PRD-002 신규
       watchSetActive: get('watch', 'setActivePath'),
       onFileChanged: get('events', 'onFileChanged'),
@@ -91,6 +92,7 @@ test('preload API surface — 필수 채널이 모두 노출됨', async () => {
     protocolReg: 'function',
     printPdf: 'function',
     onFiles: 'function',
+    appTakePending: 'function',
     watchSetActive: 'function',
     onFileChanged: 'function',
     onFileMissing: 'function'

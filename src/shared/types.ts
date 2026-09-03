@@ -57,7 +57,9 @@ export const IpcChannel = {
   AppFileChanged: 'app:file-changed',
   AppFileMissing: 'app:file-missing',
   AppFilesOpened: 'app:files-opened',
-  AppMenuCommand: 'app:menu-command'
+  AppMenuCommand: 'app:menu-command',
+  // OS 파일 연결로 실행된 경우, 렌더러 mount 전에 도착한 경로를 회수 (src/main/openFiles.ts).
+  AppTakePendingFiles: 'app:take-pending-files'
 } as const;
 
 export interface SaveDialogFilter {
