@@ -36,6 +36,26 @@ extraResources:
 
 asar: true
 
+# ---------- OS 파일 연결 (탐색기 우클릭 "연결 프로그램" / Finder "다음으로 열기") ----------
+# 한 블록으로 3개 OS 를 모두 처리 — electron-builder 가 타깃별로 변환한다:
+#   Windows(NSIS)  설치 시 .md/.markdown 을 등록하고 "연결 프로그램" 목록에 노출.
+#   macOS(DMG)     Info.plist 의 CFBundleDocumentTypes. role: Viewer — 편집 기능이 없는
+#                  읽기 전용 뷰어라 Editor 로 선언하면 OS 가 기본 편집기 후보로 취급한다.
+#   Linux(AppImage) desktop 항목의 MimeType.
+# 아이콘은 생략 — 앱 아이콘(assets/icon.png)이 자동으로 문서 아이콘이 된다.
+# 런타임 수신부는 src/main/openFiles.ts (argv / open-file / second-instance).
+fileAssociations:
+  - ext: md
+    name: Markdown
+    description: Markdown Document
+    mimeType: text/markdown
+    role: Viewer
+  - ext: markdown
+    name: Markdown
+    description: Markdown Document
+    mimeType: text/markdown
+    role: Viewer
+
 # ---------- macOS (DMG) ----------
 mac:
   target:

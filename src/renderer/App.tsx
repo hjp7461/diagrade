@@ -61,9 +61,9 @@ export function App() {
     });
   }, []);
 
-  // 메뉴 / 다이얼로그로 열린 파일을 탭에 추가.
+  // 메뉴 / 다이얼로그 / OS 탐색기 파일 연결로 열린 파일을 탭에 추가.
   useEffect(() => {
-    return window.diagrade.events.onFilesOpened((paths) => {
+    const open = (paths: string[]) => {
       const result = tabs.openPaths(paths);
       if (result.skipped > 0) {
         // FR-20 형식: "최대 {N} 개의 파일만 열 수 있습니다. {M} 개의 파일을 열었습니다."
@@ -71,7 +71,13 @@ export function App() {
           `최대 ${maxTabs} 개의 파일만 열 수 있습니다. ${result.opened} 개의 파일을 열었습니다.`
         );
       }
+    };
+    // 콜드 스타트(탐색기에서 실행)로 넘어온 경로는 이 구독보다 먼저 도착하므로 main 버퍼에서 회수.
+    // take 시 버퍼가 비워져 effect 가 재실행돼도 중복으로 열리지 않는다.
+    void window.diagrade.app.takePendingFiles().then((paths) => {
+      if (paths.length > 0) open(paths);
     });
+    return window.diagrade.events.onFilesOpened(open);
   }, [tabs, notifications, maxTabs]);
 
   // 메뉴 명령 (Cmd/Ctrl+W 등) 처리.

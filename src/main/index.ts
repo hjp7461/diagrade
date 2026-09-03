@@ -5,8 +5,9 @@ import { getStrictWebPreferences } from './security';
 import { isAllowedInternalUrl, isExternalHttpUrl } from './url';
 import { ConfigStore } from './config';
 import { registerAllIpc } from './ipc';
-import { installMenu } from './menu';
+import { installMenu, sendFilesOpened } from './menu';
 import { registerImageProtocol, IMAGE_PROTOCOL_PRIVILEGES } from './protocol';
+import { addPendingFiles, markdownPathsFromArgv, registerPendingFilesIpc } from './openFiles';
 
 const RENDERER_DEV_URL = process.env['ELECTRON_RENDERER_URL'];
 
@@ -79,14 +80,48 @@ function createMainWindow(): BrowserWindow {
   return win;
 }
 
+/**
+ * OS 파일 연결 ③ (macOS) — Finder 의 "다음으로 열기" 는 argv 가 아니라 open-file 이벤트로
+ * 온다. app.ready 이전에도 발생하므로 반드시 top-level 에서 구독한다.
+ */
+app.on('open-file', (event, path) => {
+  event.preventDefault();
+  if (BrowserWindow.getAllWindows().length > 0) sendFilesOpened([path]);
+  else addPendingFiles([path]);
+});
+
+// OS 파일 연결 ① (Windows/Linux) — 콜드 스타트 argv. 창이 뜨기 전이라 버퍼로 넘긴다.
+addPendingFiles(markdownPathsFromArgv(process.argv));
+
+/**
+ * 탐색기에서 파일을 또 열었을 때 앱이 통째로 하나 더 뜨지 않도록 단일 인스턴스로 고정.
+ * 락을 못 얻은 두 번째 프로세스는 즉시 종료하고, 경로는 second-instance 로 첫 프로세스에 전달.
+ */
+const hasSingleInstanceLock = app.requestSingleInstanceLock();
+if (!hasSingleInstanceLock) app.quit();
+
+app.on('second-instance', (_event, argv) => {
+  const win = BrowserWindow.getAllWindows()[0];
+  if (win) {
+    if (win.isMinimized()) win.restore();
+    win.focus();
+  }
+  // OS 파일 연결 ② — 창이 이미 살아있으므로 push.
+  sendFilesOpened(markdownPathsFromArgv(argv));
+});
+
 let watcherRef: ReturnType<typeof registerAllIpc>['watcher'] | null = null;
 
 void app.whenReady().then(() => {
+  // 락을 못 얻은 프로세스는 창을 만들지 않는다 (app.quit() 이 완료되기 전에 ready 가 올 수 있음).
+  if (!hasSingleInstanceLock) return;
+
   // Config: app.getPath('userData') 의 표준 위치 (FR-41).
   const configStore = new ConfigStore(join(app.getPath('userData'), 'config.json'));
   const { watcher } = registerAllIpc(configStore);
   watcherRef = watcher;
   registerImageProtocol();
+  registerPendingFilesIpc();
   installMenu();
 
   createMainWindow();

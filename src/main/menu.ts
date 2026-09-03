@@ -10,7 +10,8 @@ function targetWindow(): BrowserWindow | null {
   return BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0] ?? null;
 }
 
-function sendFilesOpened(paths: string[]): void {
+/** 살아있는 창으로 파일 경로 push. OS 파일 연결 경로(index.ts)도 이 함수를 재사용한다. */
+export function sendFilesOpened(paths: string[]): void {
   const win = targetWindow();
   if (win && paths.length > 0) {
     win.webContents.send(IpcChannel.AppFilesOpened, paths);

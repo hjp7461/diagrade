@@ -97,6 +97,15 @@ const platform = {
   getPathForFile: (file: File): string => webUtils.getPathForFile(file)
 } as const;
 
+const appApi = {
+  /**
+   * OS 파일 연결로 실행됐을 때 main 이 버퍼에 쌓아둔 경로를 회수. 가져가면 버퍼는 비워진다.
+   * 렌더러 구독(onFilesOpened)이 시작되기 전에 도착한 경로를 잃지 않기 위한 pull 경로.
+   */
+  takePendingFiles: (): Promise<string[]> =>
+    ipcRenderer.invoke(IpcChannel.AppTakePendingFiles, {})
+} as const;
+
 const print = {
   pdf: (defaultPath?: string): Promise<string | null> =>
     ipcRenderer.invoke(IpcChannel.PrintPdf, { defaultPath })
@@ -104,6 +113,7 @@ const print = {
 
 const api = {
   version: '0.1.0',
+  app: appApi,
   dialog,
   fs,
   config,
