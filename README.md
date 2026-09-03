@@ -20,11 +20,13 @@
 | 패키징 | electron-builder 26 |
 | 테스트 | Vitest 4 + Playwright |
 
-배포는 GitHub clone / source download 후 사용자가 직접 빌드하는 방식. 코드 서명·자동 업데이트는 v1.0 범위 외.
+배포는 GitHub clone / source download 후 사용자가 직접 빌드하는 방식이 기본 (Windows 만 예외적으로 릴리즈에 산출물 제공). 코드 서명·자동 업데이트는 v1.0 범위 외.
 
 ## 설치하기
 
-Diagrade 는 **GitHub 에서 소스코드를 받아 본인 머신에서 직접 빌드** 하는 방식으로 사용합니다. 미리 만든 설치 파일을 별도로 제공하지 않습니다 (코드 서명 / 자동 업데이트 인프라가 의도적으로 비활성).
+Diagrade 는 **GitHub 에서 소스코드를 받아 본인 머신에서 직접 빌드** 하는 방식이 기본입니다 (코드 서명 / 자동 업데이트 인프라가 의도적으로 비활성).
+
+> **Windows 사용자**: 요청이 있어 [v0.1.0 릴리즈](https://github.com/hjp7461/diagrade/releases/tag/v0.1.0)에 예외적으로 설치 파일을 올려 두었습니다. 빌드 없이 바로 쓰려면 그쪽을 받으시면 됩니다 (서명이 없어 최초 1회 SmartScreen 우회 필요 — 릴리즈 노트에 절차 있음). macOS / Linux 용 산출물은 제공하지 않으니 아래 절차대로 직접 빌드해 주세요.
 
 ### 사전 준비
 
