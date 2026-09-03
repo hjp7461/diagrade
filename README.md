@@ -165,3 +165,7 @@ node scripts/generate-default-icon.mjs --force
 ## 라이선스
 
 MIT
+
+---
+
+*이 문서는 100% Claude 가 작성했습니다.*
