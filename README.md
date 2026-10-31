@@ -172,7 +172,7 @@ git checkout -- assets/icon.png
 
 ## 라이선스
 
-MIT
+[MIT](LICENSE)
 
 ---
 
