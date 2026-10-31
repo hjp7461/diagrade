@@ -54,7 +54,7 @@ npm run dist
 
 | OS | 산출물 | 위치 예시 |
 |---|---|---|
-| macOS | DMG (Intel + Apple Silicon 유니버설) | `release/Diagrade-x.y.z.dmg` |
+| macOS | DMG (Apple Silicon / Intel 각각) | `release/Diagrade-x.y.z-arm64.dmg` (Apple Silicon), `release/Diagrade-x.y.z.dmg` (Intel) |
 | Windows | NSIS 설치 마법사 | `release/Diagrade Setup x.y.z.exe` |
 | Linux | AppImage (단일 파일) | `release/Diagrade-x.y.z.AppImage` |
 
@@ -134,7 +134,7 @@ npm run dist       # 새 산출물 빌드
   ```bash
   node scripts/generate-default-icon.mjs --force
   ```
-- **macOS 빌드가 너무 느림 (유니버설)** — Apple Silicon 만 필요하면 `electron-builder.yml` 의 `mac.target.arch` 를 `[arm64]` 로 좁혀 빌드 시간 절반.
+- **macOS 빌드가 너무 느림 (arm64 + x64 각각 빌드)** — Apple Silicon 만 필요하면 `electron-builder.yml` 의 `mac.target.arch` 를 `[arm64]` 로 좁혀 빌드 시간 절반.
 
 ## 개발자용
 
