@@ -28,13 +28,13 @@
 | 패키징 | electron-builder 26 |
 | 테스트 | Vitest 4 + Playwright |
 
-배포는 GitHub clone / source download 후 사용자가 직접 빌드하는 방식이 기본 (Windows 만 예외적으로 릴리즈에 산출물 제공). 코드 서명·자동 업데이트는 v1.0 범위 외.
+배포는 GitHub clone / source download 후 사용자가 직접 빌드하는 방식이 기본 (Windows / macOS 는 예외적으로 릴리즈에 산출물 제공). 코드 서명·자동 업데이트는 v1.0 범위 외.
 
 ## 설치하기
 
 Diagrade 는 **GitHub 에서 소스코드를 받아 본인 머신에서 직접 빌드** 하는 방식이 기본입니다 (코드 서명 / 자동 업데이트 인프라가 의도적으로 비활성).
 
-> **Windows 사용자**: 요청이 있어 [v0.1.0 릴리즈](https://github.com/hjp7461/diagrade/releases/tag/v0.1.0)에 예외적으로 설치 파일을 올려 두었습니다. 빌드 없이 바로 쓰려면 그쪽을 받으시면 됩니다 (서명이 없어 최초 1회 SmartScreen 우회 필요 — 릴리즈 노트에 절차 있음). macOS / Linux 용 산출물은 제공하지 않으니 아래 절차대로 직접 빌드해 주세요.
+> **Windows / macOS 사용자**: 요청이 있어 [v0.1.0 릴리즈](https://github.com/hjp7461/diagrade/releases/tag/v0.1.0)에 예외적으로 설치 파일을 올려 두었습니다. 빌드 없이 바로 쓰려면 그쪽을 받으시면 됩니다 (서명이 없어 최초 1회 보안 경고 우회 필요 — Windows 는 SmartScreen, macOS 는 `xattr`. 릴리즈 노트에 절차 있음). Linux 용 산출물은 제공하지 않으니 아래 절차대로 직접 빌드해 주세요.
 
 ### 사전 준비
 
@@ -76,7 +76,7 @@ npm run dist
 
 DMG 더블클릭으로 마운트 → `Diagrade.app` 을 `/Applications` 폴더로 드래그.
 
-본인 머신에서 빌드한 DMG 는 경고 없이 바로 실행됩니다. 다른 곳에서 내려받은 DMG 라면 **"손상되었기 때문에 열 수 없습니다"** 또는 **"확인되지 않은 개발자"** 경고가 뜰 수 있는데, 이때는 터미널에서:
+본인 머신에서 빌드한 DMG 는 경고 없이 바로 실행됩니다. 릴리즈에서 내려받은 DMG 라면 **"손상되었기 때문에 열 수 없습니다"** 또는 **"확인되지 않은 개발자"** 경고가 뜰 수 있는데, 이때는 터미널에서:
 
 ```bash
 xattr -dr com.apple.quarantine /Applications/Diagrade.app
