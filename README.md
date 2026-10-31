@@ -6,6 +6,14 @@
 
 **Dia**gram + **grade** (품질). 마크다운 안의 Mermaid 다이어그램을 PNG/SVG 로 깨끗하게 뽑아내는 것이 이 도구의 핵심 가치. 단순 뷰어가 아니라 "다이어그램 export 가 깨지지 않는다" 가 차별점.
 
+## 주요 기능
+
+- **보기** — 마크다운 + Mermaid 렌더링, 코드 하이라이트, 다이어그램 확대보기
+- **내보내기** — 다이어그램별 PNG / SVG 저장, 문서 전체 일괄 저장, PNG 배율 1~4배, 문서 PDF 내보내기
+- **열기** — 파일 / 폴더 열기, 드래그 앤 드롭, OS 의 "연결 프로그램" 으로 `.md` / `.markdown` 열기, 탭
+- **검색** — 대소문자 구분, 단어 단위, 정규식
+- **기타** — 파일 변경 시 자동 새로고침, 라이트 / 다크 / 시스템 테마
+
 ## 기술 스택
 
 | 영역 | 선택 |
@@ -13,7 +21,7 @@
 | 셸 | Electron 41 |
 | 언어 | TypeScript 6 |
 | 렌더러 | React 19 + Vite 7 |
-| 마크다운 파서 | markdown-it (+ GFM 플러그인) |
+| 마크다운 파서 | markdown-it (+ task-lists 플러그인) |
 | 코드 하이라이트 | Shiki 4 (lazy-load) |
 | 다이어그램 | mermaid 11 (번들 포함) |
 | HTML sanitize | DOMPurify 3 |
@@ -30,9 +38,9 @@ Diagrade 는 **GitHub 에서 소스코드를 받아 본인 머신에서 직접 �
 
 ### 사전 준비
 
-- **Node.js 22 이상** — [nodejs.org](https://nodejs.org/) 에서 LTS 다운로드. 버전 확인:
+- **Node.js 22.13 이상** — [nodejs.org](https://nodejs.org/) 에서 LTS 다운로드. 버전 확인:
   ```bash
-  node --version    # v22.x.x 또는 그 이상
+  node --version    # v22.13.0 또는 그 이상
   ```
 - **git** — 보통 OS 에 기본 설치 (`git --version` 으로 확인)
 
@@ -62,26 +70,21 @@ npm run dist
 
 ### 처음 실행 (OS 별 가이드)
 
-코드 서명을 적용하지 않아 처음 실행 시 OS 의 보안 경고가 나옵니다. **한 번만 우회하면** 이후 일반 실행 가능합니다.
+코드 서명을 적용하지 않아 OS 에 따라 처음 실행 시 보안 경고가 나올 수 있습니다. **한 번만 우회하면** 이후 일반 실행 가능합니다.
 
 #### macOS
 
 DMG 더블클릭으로 마운트 → `Diagrade.app` 을 `/Applications` 폴더로 드래그.
 
-처음 실행 시 **"확인되지 않은 개발자가 만든 앱이라 열 수 없습니다"** 경고가 뜨면:
+본인 머신에서 빌드한 DMG 는 경고 없이 바로 실행됩니다. 다른 곳에서 내려받은 DMG 라면 **"손상되었기 때문에 열 수 없습니다"** 또는 **"확인되지 않은 개발자"** 경고가 뜰 수 있는데, 이때는 터미널에서:
 
-1. Finder 에서 `Diagrade.app` **우클릭 (또는 Control+클릭) → "열기"**
-2. 표시되는 다이얼로그에서 다시 **"열기"** 클릭
-3. 이후엔 일반 더블클릭으로 열림
-
-또는 터미널에서 한 번에:
 ```bash
 xattr -dr com.apple.quarantine /Applications/Diagrade.app
 ```
 
 #### Windows
 
-`Diagrade Setup *.exe` 더블클릭 → 설치 마법사 따라 진행.
+설치 파일 더블클릭 → 설치 마법사 따라 진행. 파일명은 직접 빌드했다면 `Diagrade Setup *.exe`, 릴리즈에서 받았다면 `Diagrade.Setup.*.exe` 입니다.
 
 설치 도중 또는 첫 실행 시 **"Windows의 PC 보호"** SmartScreen 경고가 뜨면:
 
@@ -130,9 +133,10 @@ npm run dist       # 새 산출물 빌드
   rm -rf out release node_modules/.cache
   npm run dist
   ```
-- **`assets/icon.png 없음` 에러** — 기본 아이콘 재생성:
+- **앱 아이콘이 Electron 기본 아이콘으로 나옴** — `assets/icon.png` 가 없어도 빌드는 성공합니다. 파일을 복원한 뒤 다시 빌드:
   ```bash
-  node scripts/generate-default-icon.mjs --force
+  git checkout -- assets/icon.png
+  npm run dist
   ```
 - **macOS 빌드가 너무 느림 (arm64 + x64 각각 빌드)** — Apple Silicon 만 필요하면 `electron-builder.yml` 의 `mac.target.arch` 를 `[arm64]` 로 좁혀 빌드 시간 절반.
 
@@ -149,6 +153,8 @@ npm run lint         # ESLint
 npm run typecheck    # TypeScript 검증
 ```
 
+> **`test:e2e` 실행 전 Diagrade 를 종료하세요.** 설치한 앱이 실행 중이면 단일 인스턴스 잠금 때문에 테스트가 실패합니다. 앱을 끄기 어렵다면 사용자 데이터 경로를 분리해 실행합니다: `DIAGRADE_USER_DATA=$(mktemp -d) npm run test:e2e`
+
 ## 아이콘 커스터마이징
 
 기본 아이콘은 `assets/icon.png` (1024×1024 PNG) 한 파일이 모든 OS (macOS .icns, Windows .ico, Linux .png) 의 소스가 됩니다 — electron-builder 가 빌드 시 OS 별 형식으로 자동 변환합니다.
@@ -158,8 +164,8 @@ npm run typecheck    # TypeScript 검증
 cp my-icon.png assets/icon.png
 npm run dist  # 새 아이콘으로 산출물 빌드
 
-# 기본 아이콘으로 되돌리기 (또는 처음 생성)
-node scripts/generate-default-icon.mjs --force
+# 기본 아이콘으로 되돌리기
+git checkout -- assets/icon.png
 ```
 
 런타임에서 BrowserWindow 의 작업표시줄 아이콘도 같은 파일을 사용 (`extraResources` 로 패키지에 포함). `assets/icon.png` 가 없으면 Electron 기본 아이콘으로 안전 폴백.
