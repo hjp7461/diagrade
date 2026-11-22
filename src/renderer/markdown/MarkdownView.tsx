@@ -449,6 +449,6 @@ const errorStyle: React.CSSProperties = {
 const contentStyle: React.CSSProperties = {
   maxWidth: 960,
   margin: '0 auto',
-  lineHeight: 1.6,
-  color: '#222'
+  lineHeight: 1.6
+  // color 는 theme.css 의 .diagrade-markdown 에서 관리 — 인라인으로 박으면 다크 테마 변수를 덮는다.
 };

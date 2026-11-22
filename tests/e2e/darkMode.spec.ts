@@ -12,7 +12,10 @@ let app: ElectronApplication;
 let win: Page;
 let userDataDir: string;
 
-async function launchWith(opts?: { configBeforeLaunch?: object }): Promise<void> {
+async function launchWith(opts?: {
+  configBeforeLaunch?: object;
+  extraArgs?: string[];
+}): Promise<void> {
   userDataDir = mkdtempSync(join(tmpdir(), 'diagrade-e2e-theme-'));
   if (opts?.configBeforeLaunch) {
     writeFileSync(
@@ -22,7 +25,7 @@ async function launchWith(opts?: { configBeforeLaunch?: object }): Promise<void>
     );
   }
   app = await electron.launch({
-    args: [MAIN_PATH],
+    args: [MAIN_PATH, ...(opts?.extraArgs ?? [])],
     env: { ...process.env, DIAGRADE_USER_DATA: userDataDir }
   });
   win = await app.firstWindow();
@@ -122,4 +125,53 @@ test('FR-06: theme 잘못된 값 → default auto 폴백 (시스템 dark 면 dar
     DARK_CLASS,
     { timeout: 2000 }
   );
+});
+
+/**
+ * 본문 글자색 회귀 가드. body 클래스만 보는 위 테스트들은 article 의 인라인
+ * color 가 테마 변수를 덮어 다크 배경에 어두운 글자가 남던 회귀를 못 잡았다.
+ * 실제 computed color 가 테마의 --diagrade-fg 와 같은지 본다.
+ */
+const BODY_TEXT_MD = '# 제목\n\n본문 문단\n\n| 열 |\n|---|\n| 셀 |\n';
+
+async function bodyTextColors(): Promise<string[]> {
+  await expect(win.locator('.diagrade-markdown h1')).toContainText('제목');
+  return win.evaluate(() =>
+    ['h1', 'p', 'th', 'td'].map(
+      (sel) => getComputedStyle(document.querySelector(`.diagrade-markdown ${sel}`)!).color
+    )
+  );
+}
+
+test('theme="dark" → 제목 / 본문 / 표 글자가 dark 의 --diagrade-fg', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'diagrade-e2e-theme-md-'));
+  const file = join(dir, 'doc.md');
+  writeFileSync(file, BODY_TEXT_MD, 'utf-8');
+  try {
+    await launchWith({
+      configBeforeLaunch: { maxTabs: 20, liveReload: true, theme: 'dark' },
+      extraArgs: [file]
+    });
+    await win.waitForFunction((cls) => document.body.classList.contains(cls), DARK_CLASS);
+    // #e2e8f0
+    expect(await bodyTextColors()).toEqual(Array(4).fill('rgb(226, 232, 240)'));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('theme="light" → 제목 / 본문 / 표 글자가 light 의 --diagrade-fg', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'diagrade-e2e-theme-md-'));
+  const file = join(dir, 'doc.md');
+  writeFileSync(file, BODY_TEXT_MD, 'utf-8');
+  try {
+    await launchWith({
+      configBeforeLaunch: { maxTabs: 20, liveReload: true, theme: 'light' },
+      extraArgs: [file]
+    });
+    // #1f2937
+    expect(await bodyTextColors()).toEqual(Array(4).fill('rgb(31, 41, 55)'));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
