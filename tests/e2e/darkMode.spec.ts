@@ -175,3 +175,21 @@ test('theme="light" → 제목 / 본문 / 표 글자가 light 의 --diagrade-fg'
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('theme="dark" → pie 조각이 다크 팔레트 (거의 검정인 mermaid 기본값 X)', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'diagrade-e2e-theme-pie-'));
+  const file = join(dir, 'pie.md');
+  writeFileSync(file, '```mermaid\npie\n  "A" : 60\n  "B" : 40\n```\n', 'utf-8');
+  try {
+    await launchWith({
+      configBeforeLaunch: { maxTabs: 20, liveReload: true, theme: 'dark' },
+      extraArgs: [file]
+    });
+    const slice = win.locator('svg[aria-roledescription=pie] path.pieCircle').first();
+    await expect(slice).toBeVisible();
+    // pie1 = #60a5fa
+    expect(await slice.evaluate((el) => getComputedStyle(el).fill)).toBe('rgb(96, 165, 250)');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
