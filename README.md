@@ -34,7 +34,7 @@
 
 Diagrade 는 **GitHub 에서 소스코드를 받아 본인 머신에서 직접 빌드** 하는 방식이 기본입니다 (코드 서명 / 자동 업데이트 인프라가 의도적으로 비활성).
 
-> **Windows / macOS 사용자**: 요청이 있어 [v0.1.0 릴리즈](https://github.com/hjp7461/diagrade/releases/tag/v0.1.0)에 예외적으로 설치 파일을 올려 두었습니다. 빌드 없이 바로 쓰려면 그쪽을 받으시면 됩니다 (서명이 없어 최초 1회 보안 경고 우회 필요 — Windows 는 SmartScreen, macOS 는 `xattr`. 릴리즈 노트에 절차 있음). Linux 용 산출물은 제공하지 않으니 아래 절차대로 직접 빌드해 주세요.
+> **Windows / macOS 사용자**: 요청이 있어 [GitHub 릴리즈](https://github.com/hjp7461/diagrade/releases)에 예외적으로 설치 파일을 올려 두었습니다 (macOS 최신: v0.1.1, Windows: v0.1.0). 빌드 없이 바로 쓰려면 그쪽을 받으시면 됩니다 (서명이 없어 최초 1회 보안 경고 우회 필요 — Windows 는 SmartScreen, macOS 는 `xattr`. 릴리즈 노트에 절차 있음). Linux 용 산출물은 제공하지 않으니 아래 절차대로 직접 빌드해 주세요.
 
 ### 사전 준비
 

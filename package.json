@@ -1,6 +1,6 @@
 {
   "name": "diagrade",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Markdown + Mermaid viewer optimized for clean diagram exports.",
   "license": "MIT",
